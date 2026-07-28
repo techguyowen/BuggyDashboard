@@ -539,10 +539,13 @@ function ensureEndsAt(item) {
 // API Endpoint for Live Items
 app.get('/api/scrape', async (req, res) => {
   const extend = req.query.extend === 'true';
+  const refresh = req.query.refresh === 'true' || req.query.force === 'true';
 
   if (extend) {
     // Extended scan (6 catalogs x 12 pages)
     crawlDeepAuctionPages(6, 12);
+  } else if (refresh) {
+    crawlDeepAuctionPages(6, 8);
   }
 
   let itemsArr = Array.from(masterCatalogMap.values());

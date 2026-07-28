@@ -310,6 +310,50 @@
       transition: width 0.3s ease;
     }
 
+    /* LIVE INGESTION BANNER */
+    .live-ingestion-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+      backdrop-filter: blur(12px);
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 1.2rem;
+      transition: all 0.3s ease;
+    }
+    .ingestion-pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #f59e0b;
+      box-shadow: 0 0 10px #f59e0b;
+      animation: pulseGlow 1.5s infinite alternate;
+    }
+    @keyframes pulseGlow {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+    .ingestion-text {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      color: #e2e8f0;
+    }
+    .ingestion-badge {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+    }
+
     /* APP LAYOUT */
     .app-layout {
       display: flex;
@@ -1239,6 +1283,17 @@
         </div>
       </div>
 
+      <!-- LIVE PROGRESSIVE INGESTION BANNER -->
+      <div id="liveIngestionBanner" class="live-ingestion-banner" style="display: none;">
+        <div class="ingestion-pulse-dot"></div>
+        <div class="ingestion-text">
+          <i class="fa-solid fa-bolt spin-icon" style="color: #f59e0b;"></i>
+          <strong id="ingestionBannerTitle">Live Ingestion Active</strong>
+          <span id="ingestionBannerDetail" style="color: #94a3b8; font-size: 0.82rem;">- Populating catalog items progressively page by page...</span>
+        </div>
+        <div id="ingestionItemBadge" class="ingestion-badge">0 items loaded</div>
+      </div>
+
       <!-- TOOLBAR -->
       <div class="toolbar">
         <div class="results-count">
@@ -1856,18 +1911,35 @@
       const statusMsg = document.getElementById('progressStatusMsg');
       const spinner = document.getElementById('progressSpinner');
 
+      const banner = document.getElementById('liveIngestionBanner');
+      const bannerTitle = document.getElementById('ingestionBannerTitle');
+      const bannerBadge = document.getElementById('ingestionItemBadge');
+
       if (pctText) pctText.innerText = `${progress.progressPct}%`;
       if (barFill) barFill.style.width = `${progress.progressPct}%`;
+      
+      const count = totalIndexed || allItems.length;
+
       if (statusMsg) {
         if (progress.isScraping) {
-          statusMsg.innerText = `${progress.status} (${totalIndexed || allItems.length} items loaded)`;
+          statusMsg.innerText = `${progress.status} (${count} items loaded)`;
         } else {
-          statusMsg.innerText = `Ingestion Complete (${totalIndexed || allItems.length} items ready)`;
+          statusMsg.innerText = `Ingestion Complete (${count} items ready)`;
         }
       }
 
       if (spinner) {
         spinner.style.display = progress.isScraping ? 'inline-block' : 'none';
+      }
+
+      if (banner) {
+        if (progress.isScraping) {
+          banner.style.display = 'flex';
+          if (bannerTitle) bannerTitle.innerText = progress.status;
+          if (bannerBadge) bannerBadge.innerText = `⚡ ${count} items ingested live`;
+        } else {
+          banner.style.display = 'none';
+        }
       }
     }
 
@@ -1923,7 +1995,7 @@
       initRealtimeStream();
 
       try {
-        await fetchCatalog();
+        await fetch('/api/scrape?refresh=true');
       } finally {
         syncBtn.classList.remove('loading');
       }
