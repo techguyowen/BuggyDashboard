@@ -187,6 +187,86 @@
       100% { transform: rotate(360deg); }
     }
 
+    /* ACCOUNT & HEADLESS SYNC BUTTONS */
+    .account-auth-btn {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.65rem 1rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .account-auth-btn:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--accent-raleigh);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+
+    .status-dot.connected {
+      background-color: var(--accent-raleigh);
+      box-shadow: 0 0 8px var(--accent-raleigh-glow);
+    }
+
+    .status-dot.disconnected {
+      background-color: #94a3b8;
+    }
+
+    .status-dot.syncing {
+      background-color: var(--accent-gold);
+      animation: pulse 1s infinite;
+    }
+
+    .watchlist-sync-btn {
+      background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+    }
+
+    .watchlist-sync-btn:hover {
+      box-shadow: 0 6px 18px rgba(245, 158, 11, 0.45) !important;
+    }
+
+    .auth-alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .auth-alert.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-raleigh);
+      color: #6ee7b7;
+    }
+
+    .auth-alert.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+    }
+
+    .auth-alert.info {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid var(--accent-sc);
+      color: #a5b4fc;
+    }
+
     /* LIVE SCAN PROGRESS WIDGET */
     .progress-widget {
       background: rgba(30, 41, 59, 0.9);
@@ -442,6 +522,7 @@
     .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-raleigh); }
     .stat-icon.indigo { background: rgba(99, 102, 241, 0.15); color: var(--accent-sc); }
     .stat-icon.gold { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
+    .stat-icon.red { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
     /* TOOLBAR */
     .toolbar {
@@ -679,6 +760,67 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    /* TIME REMAINING BANNER */
+    .time-remaining-banner {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .time-remaining-banner.status-urgent {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #fca5a5;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+      animation: urgentPulse 1.8s infinite;
+    }
+
+    .time-remaining-banner.status-soon {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fcd34d;
+    }
+
+    .time-remaining-banner.status-upcoming {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #a5b4fc;
+    }
+
+    .time-remaining-banner.status-ended {
+      background: rgba(148, 163, 184, 0.15);
+      border-color: rgba(148, 163, 184, 0.3);
+      color: #94a3b8;
+    }
+
+    .time-remaining-banner .time-text-content {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .time-remaining-banner .time-countdown-val {
+      font-family: 'Outfit', monospace, sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+    }
+
+    @keyframes urgentPulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
     /* FINANCIAL PRICE COMPARISON BOX */
@@ -920,7 +1062,18 @@
     </div>
 
     <div class="header-actions">
-      <button class="icon-btn" onclick="openWatchlistModal()" title="Watchlist Settings (Gear)">
+      <button id="accountAuthBtn" class="account-auth-btn" onclick="openCredentialsModal()" title="Connect Auction Account">
+        <span class="status-dot disconnected" id="authStatusDot"></span>
+        <i class="fa-solid fa-user-shield"></i>
+        <span id="authStatusText">Connect Auction Account</span>
+      </button>
+
+      <button id="syncWatchlistBtn" class="sync-btn watchlist-sync-btn" onclick="syncLiveWatchlist()" title="Bi-Directional Watchlist Sync with Triangle Liquidators">
+        <i class="fa-solid fa-cloud-arrow-down"></i>
+        <span>Sync Watchlist</span>
+      </button>
+
+      <button class="icon-btn" onclick="openWatchlistModal()" title="Watchlist Keywords Settings (Gear)">
         <i class="fa-solid fa-gear"></i>
       </button>
       <button id="extendBtn" class="sync-btn extend-btn" onclick="extendScanDays()">
@@ -988,6 +1141,17 @@
           <option value="Kitchen & Home">Kitchen & Home</option>
           <option value="Furniture & Patio">Furniture & Patio</option>
           <option value="General Merchandise">General Merchandise</option>
+        </select>
+      </div>
+
+      <!-- TIME REMAINING FILTER -->
+      <div class="filter-group">
+        <div class="filter-label">Time Remaining</div>
+        <select id="timeFilterSelect" class="form-select" onchange="applyFilters()">
+          <option value="All" selected>⏳ All Auction End Times</option>
+          <option value="urgent">🚨 Urgent (Closing in &lt; 2 hrs)</option>
+          <option value="today">📅 Closing Today (&lt; 24 hrs)</option>
+          <option value="upcoming">🗓️ Future / Multi-day</option>
         </select>
       </div>
 
@@ -1065,6 +1229,14 @@
           </div>
           <div class="stat-icon indigo"><i class="fa-solid fa-receipt"></i></div>
         </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <div id="statNextClosing" class="stat-value">--</div>
+            <div class="stat-label">Next Lot Closing</div>
+          </div>
+          <div class="stat-icon red"><i class="fa-solid fa-stopwatch"></i></div>
+        </div>
       </div>
 
       <!-- TOOLBAR -->
@@ -1083,6 +1255,8 @@
             <label for="sortSelect"><i class="fa-solid fa-sort"></i> Quick Sort:</label>
             <select id="sortSelect" class="sort-select" onchange="applyFilters()">
               <option value="watchlist" selected>🔥 Watchlist Highlights First</option>
+              <option value="time-asc">⏳ Time Remaining: Ending Soonest</option>
+              <option value="time-desc">⌛ Time Remaining: Ending Latest</option>
               <option value="date-asc">📅 Closing Date: Earliest First</option>
               <option value="date-desc">📅 Closing Date: Latest First</option>
               <option value="savings-desc">💥 Highest % Savings First</option>
@@ -1136,6 +1310,61 @@
     </div>
   </div>
 
+  <!-- CREDENTIALS MODAL -->
+  <div id="credentialsModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-user-shield" style="color: var(--accent-raleigh);"></i> 
+          Auction Site Credentials & Headless Sync
+        </div>
+        <button class="close-modal-btn" onclick="closeCredentialsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Enter your login credentials for <strong style="color: var(--text-main);">auction.triangleliquidators.com</strong> to sync your Watch List headlessly to and from the live auction site.
+        </p>
+
+        <div id="authAlert" class="auth-alert" style="display: none;"></div>
+
+        <div class="filter-group">
+          <div class="filter-label">Email Address / Username</div>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="authEmail" class="form-input" placeholder="your-email@example.com" onkeydown="if(event.key==='Enter') submitHeadlessLogin()">
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-label">Password</div>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-key"></i>
+            <input type="password" id="authPassword" class="form-input" placeholder="••••••••••••" onkeydown="if(event.key==='Enter') submitHeadlessLogin()">
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+          <input type="checkbox" id="rememberCreds" checked style="accent-color: var(--accent-raleigh);">
+          <label for="rememberCreds">Remember email for future sessions</label>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+        <button class="reset-btn" id="logoutBtn" onclick="submitHeadlessLogout()" style="display: none; color: #ef4444;">
+          <i class="fa-solid fa-right-from-bracket"></i> Disconnect Account
+        </button>
+        <div style="display: flex; gap: 0.6rem; margin-left: auto;">
+          <button class="reset-btn" onclick="closeCredentialsModal()">Cancel</button>
+          <button id="loginSubmitBtn" class="sync-btn" onclick="submitHeadlessLogin()">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            <span>Authenticate & Sync</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let allItems = [];
     let activeWatchlist = new Set(["dewalt", "milwaukee", "ninja", "patio", "generator", "pressure washer", "craftsman"]);
@@ -1178,15 +1407,189 @@
       document.getElementById('savedCountLabel').innerText = savedFavoriteUrls.size;
     }
 
+    let authState = {
+      isLoggedIn: false,
+      email: null,
+      lastSyncTime: null
+    };
+
+    // Check Auth Status on Server
+    async function checkAuthStatus() {
+      try {
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+        authState.isLoggedIn = data.isLoggedIn;
+        authState.email = data.email;
+        authState.lastSyncTime = data.lastSyncTime;
+
+        updateAuthStatusUI();
+      } catch (e) {
+        console.error('Auth status check error', e);
+      }
+    }
+
+    function updateAuthStatusUI() {
+      const dot = document.getElementById('authStatusDot');
+      const text = document.getElementById('authStatusText');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      if (authState.isLoggedIn && authState.email) {
+        if (dot) dot.className = 'status-dot connected';
+        if (text) text.innerText = `Connected: ${authState.email}`;
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+      } else {
+        if (dot) dot.className = 'status-dot disconnected';
+        if (text) text.innerText = 'Connect Auction Account';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+      }
+    }
+
+    function openCredentialsModal() {
+      const alertBox = document.getElementById('authAlert');
+      if (alertBox) alertBox.style.display = 'none';
+
+      const savedEmail = localStorage.getItem('tl_saved_auth_email');
+      if (savedEmail) {
+        document.getElementById('authEmail').value = savedEmail;
+      }
+
+      document.getElementById('credentialsModal').classList.add('open');
+    }
+
+    function closeCredentialsModal() {
+      document.getElementById('credentialsModal').classList.remove('open');
+    }
+
+    async function submitHeadlessLogin() {
+      const emailInput = document.getElementById('authEmail');
+      const passwordInput = document.getElementById('authPassword');
+      const submitBtn = document.getElementById('loginSubmitBtn');
+      const alertBox = document.getElementById('authAlert');
+
+      const username = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!username || !password) {
+        alertBox.className = 'auth-alert error';
+        alertBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Please enter both your email address and password.';
+        alertBox.style.display = 'flex';
+        return;
+      }
+
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
+      alertBox.className = 'auth-alert info';
+      alertBox.innerHTML = '<i class="fa-solid fa-spinner spin-icon"></i> Logging into Triangle Liquidators headlessly via Puppeteer...';
+      alertBox.style.display = 'flex';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          alertBox.className = 'auth-alert success';
+          alertBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${data.message}`;
+
+          if (document.getElementById('rememberCreds').checked) {
+            localStorage.setItem('tl_saved_auth_email', username);
+          }
+
+          await checkAuthStatus();
+          setTimeout(() => {
+            closeCredentialsModal();
+            syncLiveWatchlist();
+          }, 1200);
+        } else {
+          alertBox.className = 'auth-alert error';
+          alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${data.error || 'Authentication failed.'}`;
+        }
+      } catch (e) {
+        alertBox.className = 'auth-alert error';
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Network error: ${e.message}`;
+      } finally {
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function submitHeadlessLogout() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        await checkAuthStatus();
+        closeCredentialsModal();
+      } catch (e) {
+        console.error('Logout error', e);
+      }
+    }
+
+    async function syncLiveWatchlist() {
+      const syncBtn = document.getElementById('syncWatchlistBtn');
+      const dot = document.getElementById('authStatusDot');
+
+      if (!authState.isLoggedIn) {
+        openCredentialsModal();
+        return;
+      }
+
+      syncBtn.classList.add('loading');
+      if (dot) dot.className = 'status-dot syncing';
+
+      try {
+        const localUrls = Array.from(savedFavoriteUrls);
+        const res = await fetch('/api/watchlist/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ localWatchlistUrls: localUrls })
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.remoteItems) {
+          data.remoteItems.forEach(item => {
+            savedFavoriteUrls.add(item.url);
+            if (!allItems.some(i => i.url === item.url)) {
+              allItems.unshift(item);
+            }
+          });
+
+          saveFavoritesState();
+          applyFilters();
+          await checkAuthStatus();
+        } else if (res.status === 401) {
+          await checkAuthStatus();
+          openCredentialsModal();
+        }
+      } catch (e) {
+        console.error('Sync watchlist error', e);
+      } finally {
+        syncBtn.classList.remove('loading');
+        if (dot) dot.className = authState.isLoggedIn ? 'status-dot connected' : 'status-dot disconnected';
+      }
+    }
+
     function toggleStarFavorite(url, event) {
       if (event) event.stopPropagation();
-      if (savedFavoriteUrls.has(url)) {
-        savedFavoriteUrls.delete(url);
-      } else {
+      const shouldWatch = !savedFavoriteUrls.has(url);
+      if (shouldWatch) {
         savedFavoriteUrls.add(url);
+      } else {
+        savedFavoriteUrls.delete(url);
       }
       saveFavoritesState();
       applyFilters();
+
+      if (authState.isLoggedIn) {
+        fetch('/api/watchlist/remote-watch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, watch: shouldWatch })
+        }).catch(e => console.error('Remote watch toggle error', e));
+      }
     }
 
     function toggleSavedOnlyFilter() {
@@ -1316,12 +1719,100 @@
       document.getElementById('searchInput').value = '';
       document.getElementById('locationSelect').value = 'All';
       document.getElementById('categorySelect').value = 'All';
+      if (document.getElementById('timeFilterSelect')) document.getElementById('timeFilterSelect').value = 'All';
       document.getElementById('budgetRange').value = 600;
       document.getElementById('budgetValue').innerText = '$600';
       document.getElementById('sortSelect').value = 'watchlist';
       filterSavedOnly = false;
       document.getElementById('savedOnlyBtn').classList.remove('active');
       applyFilters();
+    }
+
+    function formatTimeRemaining(endsAtISO, closingDateStr) {
+      let target = endsAtISO ? new Date(endsAtISO).getTime() : NaN;
+
+      if (isNaN(target) && closingDateStr) {
+        target = new Date(`${closingDateStr}T19:00:00-04:00`).getTime();
+      }
+
+      if (isNaN(target)) {
+        const fallback = new Date();
+        fallback.setHours(19, 0, 0, 0);
+        if (fallback.getTime() <= Date.now()) {
+          fallback.setDate(fallback.getDate() + 1);
+        }
+        target = fallback.getTime();
+      }
+
+      const now = Date.now();
+      const diffMs = target - now;
+
+      if (diffMs <= 0) {
+        return { text: 'Auction Closed', statusClass: 'status-ended', icon: 'fa-solid fa-calendar-xmark', seconds: 0 };
+      }
+
+      const totalSec = Math.floor(diffMs / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      const days = Math.floor(hours / 24);
+
+      let text = '';
+      if (days >= 2) {
+        text = `${days}d ${hours % 24}h remaining`;
+      } else if (hours >= 1) {
+        text = `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+      } else {
+        text = `${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s remaining`;
+      }
+
+      let statusClass = 'status-upcoming';
+      let icon = 'fa-regular fa-clock';
+
+      if (hours < 2) {
+        statusClass = 'status-urgent';
+        icon = 'fa-solid fa-stopwatch spin-icon';
+      } else if (hours < 24) {
+        statusClass = 'status-soon';
+        icon = 'fa-solid fa-clock';
+      }
+
+      return { text, statusClass, icon, seconds: totalSec };
+    }
+
+    function updateLiveTimers() {
+      const elements = document.querySelectorAll('.time-remaining-banner');
+      elements.forEach(el => {
+        const endsAt = el.getAttribute('data-endsat');
+        const closingDate = el.getAttribute('data-closingdate');
+        const info = formatTimeRemaining(endsAt, closingDate);
+        
+        el.className = `time-remaining-banner ${info.statusClass}`;
+        const iconEl = el.querySelector('i');
+        if (iconEl) iconEl.className = info.icon;
+        
+        const valEl = el.querySelector('.time-countdown-val');
+        if (valEl) valEl.innerText = info.text;
+      });
+
+      updateNextClosingStat();
+    }
+
+    function updateNextClosingStat() {
+      const statEl = document.getElementById('statNextClosing');
+      if (!statEl) return;
+
+      const activeItemsWithTime = allItems
+        .map(i => ({ item: i, info: formatTimeRemaining(i.endsAt) }))
+        .filter(x => x.info.seconds > 0 && x.info.seconds !== Infinity);
+
+      if (activeItemsWithTime.length === 0) {
+        statEl.innerText = 'None Active';
+        return;
+      }
+
+      activeItemsWithTime.sort((a, b) => a.info.seconds - b.info.seconds);
+      statEl.innerText = activeItemsWithTime[0].info.text;
     }
 
     async function pollProgress() {
@@ -1392,6 +1883,7 @@
       const query = document.getElementById('searchInput').value.toLowerCase().trim();
       const location = document.getElementById('locationSelect').value;
       const category = document.getElementById('categorySelect').value;
+      const timeFilter = document.getElementById('timeFilterSelect') ? document.getElementById('timeFilterSelect').value : 'All';
       const maxBudget = parseFloat(document.getElementById('budgetRange').value);
       const sortBy = document.getElementById('sortSelect').value;
 
@@ -1415,6 +1907,13 @@
         if (category !== 'All' && item.category !== category) return false;
         if (fin.totalNum > maxBudget) return false;
 
+        if (timeFilter !== 'All') {
+          const info = formatTimeRemaining(item.endsAt);
+          if (timeFilter === 'urgent' && info.statusClass !== 'status-urgent') return false;
+          if (timeFilter === 'today' && info.statusClass !== 'status-urgent' && info.statusClass !== 'status-soon') return false;
+          if (timeFilter === 'upcoming' && info.statusClass !== 'status-upcoming') return false;
+        }
+
         return true;
       });
 
@@ -1433,6 +1932,14 @@
           if (watchA && !watchB) return -1;
           if (!watchA && watchB) return 1;
           return finA.totalNum - finB.totalNum;
+        } else if (sortBy === 'time-asc') {
+          const timeA = a.endsAt ? new Date(a.endsAt).getTime() : Infinity;
+          const timeB = b.endsAt ? new Date(b.endsAt).getTime() : Infinity;
+          return timeA - timeB;
+        } else if (sortBy === 'time-desc') {
+          const timeA = a.endsAt ? new Date(a.endsAt).getTime() : -1;
+          const timeB = b.endsAt ? new Date(b.endsAt).getTime() : -1;
+          return timeB - timeA;
         } else if (sortBy === 'date-asc') {
           return (a.closingDate || '').localeCompare(b.closingDate || '');
         } else if (sortBy === 'date-desc') {
@@ -1472,6 +1979,8 @@
       } else {
         document.getElementById('statAvgOutofPocket').innerText = '$0.00';
       }
+
+      updateNextClosingStat();
     }
 
     function renderCards(items) {
@@ -1492,6 +2001,7 @@
         const watchMatch = isWatchlistMatch(item.title);
         const isRaleigh = item.location === 'Raleigh';
         const isSaved = savedFavoriteUrls.has(item.url);
+        const timeInfo = formatTimeRemaining(item.endsAt, item.closingDate);
 
         return `
           <div class="item-card ${watchMatch ? 'watchlist-match' : ''}">
@@ -1516,6 +2026,15 @@
                   ${item.brand ? `<span style="font-weight: 700; color: #94a3b8;"><i class="fa-solid fa-tag"></i> ${item.brand}</span>` : ''}
                 </div>
                 <h3 class="card-title" title="${item.title}">${item.title}</h3>
+              </div>
+
+              <!-- TIME REMAINING COUNTDOWN BANNER -->
+              <div class="time-remaining-banner ${timeInfo.statusClass}" data-endsat="${item.endsAt || ''}" data-closingdate="${item.closingDate || ''}">
+                <i class="${timeInfo.icon}"></i>
+                <div class="time-text-content">
+                  <span>Time Remaining:</span>
+                  <span class="time-countdown-val">${timeInfo.text}</span>
+                </div>
               </div>
 
               <!-- EXACT DESCRIPTION CONDITION BANNER -->
@@ -1562,9 +2081,11 @@
     // Initialize Page
     window.addEventListener('DOMContentLoaded', () => {
       loadSavedState();
+      checkAuthStatus();
       renderSidebarTags();
       syncAuctionData();
       startProgressPolling();
+      setInterval(updateLiveTimers, 1000);
     });
   </script>
 </body>
