@@ -49,6 +49,22 @@ let scraperProgress = {
   scrapedDaysCount: 0
 };
 
+let sseClients = [];
+
+function broadcastEvent(type, extraData = {}) {
+  const payload = JSON.stringify({
+    type,
+    progress: scraperProgress,
+    totalIndexed: masterCatalogMap.size,
+    ...extraData
+  });
+  sseClients.forEach(client => {
+    try {
+      client.write(`data: ${payload}\n\n`);
+    } catch (_) {}
+  });
+}
+
 // Seed initial items with dynamic endsAt ISO timestamps
 const now = new Date();
 const todayStr = now.toISOString().split('T')[0];
@@ -160,7 +176,7 @@ FALLBACK_ITEMS.forEach(i => {
 scraperProgress.totalIndexed = masterCatalogMap.size;
 
 /**
- * Robust Multi-Page Crawler with Page Re-creation Guard
+ * Fast Fast-Streaming Multi-Page Crawler with Progressive Real-Time UI Broadcasting
  */
 async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog = 10) {
   if (isBackgroundScraping) return;
@@ -169,7 +185,9 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
   scraperProgress.status = "Discovering active auction catalogs...";
   scraperProgress.progressPct = 5;
 
-  console.log(`[DEEP CRAWLER] Starting deep page crawl (Scanning ${maxCatalogsToScan} catalogs x ${maxPagesPerCatalog} pages at 96 items/page)...`);
+  broadcastEvent('progress_update');
+
+  console.log(`[DEEP CRAWLER] Starting progressive live crawl (Scanning ${maxCatalogsToScan} catalogs x ${maxPagesPerCatalog} pages)...`);
 
   let browser = null;
   try {
@@ -185,14 +203,29 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
       ]
     });
 
-    let page = await browser.newPage();
-    await page.setUserAgent(
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-    );
-    await page.setViewport({ width: 1440, height: 900 });
+    const createOptimizedPage = async () => {
+      const p = await browser.newPage();
+      await p.setUserAgent(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      );
+      await p.setViewport({ width: 1440, height: 900 });
+      // Intercept & block unnecessary heavy assets during HTML structure parsing
+      await p.setRequestInterception(true);
+      p.on('request', (req) => {
+        const resourceType = req.resourceType();
+        if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+          req.abort();
+        } else {
+          req.continue();
+        }
+      });
+      return p;
+    };
 
-    await page.goto('https://auction.triangleliquidators.com/', { waitUntil: 'networkidle2', timeout: 30000 });
-    await new Promise(r => setTimeout(r, 2500));
+    let page = await createOptimizedPage();
+
+    await page.goto('https://auction.triangleliquidators.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await new Promise(r => setTimeout(r, 1500));
 
     // Get active auction catalog URLs across days
     const activeAuctions = await page.evaluate(() => {
@@ -213,6 +246,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
 
     scraperProgress.scrapedDaysCount = activeAuctions.length;
     console.log(`[DEEP CRAWLER] Discovered ${activeAuctions.length} active auction catalogs.`);
+    broadcastEvent('progress_update');
 
     const catalogsToProcess = activeAuctions.slice(0, maxCatalogsToScan);
     const totalWorkUnits = catalogsToProcess.length * maxPagesPerCatalog;
@@ -223,21 +257,19 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
         completedWorkUnits++;
         scraperProgress.progressPct = Math.min(98, Math.round((completedWorkUnits / totalWorkUnits) * 92) + 5);
         scraperProgress.currentAuction = auc.name;
-        scraperProgress.status = `Deep Crawling ${auc.name} (${auc.location}) Page ${pageNum} of ${maxPagesPerCatalog} (96 items/page)...`;
+        scraperProgress.status = `Progressively Ingesting ${auc.name} (${auc.location}) Page ${pageNum}/${maxPagesPerCatalog}...`;
 
         const pageUrl = `${auc.href}?limit=96&perPage=96&page=${pageNum}`;
         console.log(`[DEEP CRAWLER] ${scraperProgress.status}`);
+        broadcastEvent('progress_update');
 
         try {
-          // Re-create page if detached or closed to prevent frame errors
           if (!page || page.isClosed()) {
-            page = await browser.newPage();
-            await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
-            await page.setViewport({ width: 1440, height: 900 });
+            page = await createOptimizedPage();
           }
 
-          await page.goto(pageUrl, { waitUntil: 'networkidle2', timeout: 22000 });
-          await new Promise(r => setTimeout(r, 1800));
+          await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 18000 });
+          await new Promise(r => setTimeout(r, 1200));
 
           const pageItems = await page.evaluate((loc, aucName, pNum) => {
             const lotLinks = Array.from(document.querySelectorAll('a[href*="/lots/view/"]'));
@@ -309,7 +341,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
               let endsAtISO = null;
               let closingTimeStr = null;
 
-              // 1. Try extracting live countdown timer text from lot card DOM (e.g. "9h 35m 56s" or "2d 4h 10m" or "45m 20s")
+              // 1. Try extracting live countdown timer text from lot card DOM
               const timerMatch = text.match(/\b(?:(\d+)\s*d\s*)?(?:(\d+)\s*h\s*)?(\d+)\s*m(?:\s*(\d+)\s*s)?\b/i);
               if (timerMatch) {
                 const hasD = timerMatch[1] !== undefined;
@@ -333,7 +365,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
                 }
               }
 
-              // 2. Try extracting date MM/DD/YYYY or MMDDYYYY from auction name or lot link URL
+              // 2. Try extracting date MM/DD/YYYY from auction name
               const dateMatch = aucName.match(/(\d{2})[\/-]?(\d{2})[\/-]?(\d{4})/) || a.href.match(/(\d{2})(\d{2})(\d{4})/);
               if (dateMatch) {
                 const m = dateMatch[1];
@@ -341,7 +373,6 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
                 const y = dateMatch[3];
                 closingDate = `${y}-${m}-${d}`;
                 if (!endsAtISO) {
-                  // Default catalog closing time to 19:00 EDT (7:00 PM) on auction date
                   const targetDate = new Date(`${y}-${m}-${d}T19:00:00-04:00`);
                   if (!isNaN(targetDate.getTime())) {
                     endsAtISO = targetDate.toISOString();
@@ -349,7 +380,6 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
                 }
               }
 
-              // 3. Fallback: if no date or timer was matched, default to today's 7:00 PM or +4 hours
               if (!endsAtISO) {
                 const fallbackDate = new Date();
                 fallbackDate.setHours(19, 0, 0, 0);
@@ -399,9 +429,20 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
           });
 
           scraperProgress.totalIndexed = masterCatalogMap.size;
+
+          // Push real-time progressive update to UI
+          const currentItems = Array.from(masterCatalogMap.values()).map(item => ({
+            ...item,
+            endsAt: ensureEndsAt(item)
+          }));
+
+          broadcastEvent('items_ingested', {
+            newBatchCount: pageItems.length,
+            items: currentItems
+          });
+
         } catch (e) {
           console.error(`[DEEP CRAWLER] Error on ${auc.name} Page ${pageNum}:`, e.message);
-          // Try to reset page on error
           try { if (page) await page.close(); } catch (_) {}
           page = null;
         }
@@ -418,6 +459,15 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
     scraperProgress.isScraping = false;
     scraperProgress.status = "Complete";
     scraperProgress.progressPct = 100;
+
+    const finalItems = Array.from(masterCatalogMap.values()).map(item => ({
+      ...item,
+      endsAt: ensureEndsAt(item)
+    }));
+
+    broadcastEvent('complete', {
+      items: finalItems
+    });
   }
 }
 
@@ -430,6 +480,41 @@ app.get('/api/progress', (req, res) => {
   res.json({
     ...scraperProgress,
     totalIndexed: masterCatalogMap.size
+  });
+});
+
+// Real-Time Server-Sent Events (SSE) Progressive Stream Endpoint
+app.get('/api/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  sseClients.push(res);
+
+  let itemsArr = Array.from(masterCatalogMap.values());
+  const hasLiveScraped = itemsArr.some(i => i.id && i.id.startsWith('scraped-'));
+
+  if (hasLiveScraped) {
+    itemsArr = itemsArr.filter(i => !(i.id && i.id.startsWith('tl-10')));
+  }
+
+  const sanitizedItems = itemsArr.map(item => ({
+    ...item,
+    endsAt: ensureEndsAt(item)
+  }));
+
+  const initialPayload = JSON.stringify({
+    type: 'init',
+    progress: scraperProgress,
+    totalIndexed: sanitizedItems.length,
+    items: sanitizedItems
+  });
+
+  res.write(`data: ${initialPayload}\n\n`);
+
+  req.on('close', () => {
+    sseClients = sseClients.filter(c => c !== res);
   });
 });
 

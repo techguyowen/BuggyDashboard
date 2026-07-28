@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   tl-auction-dashboard:
-    # Build directly from GitHub repository (techguyowen/TL-Dashboard)
     build:
-      context: https://github.com/techguyowen/TL-Dashboard.git#main
+      context: .
       dockerfile: Dockerfile
     container_name: tl-auction-dashboard
     restart: unless-stopped

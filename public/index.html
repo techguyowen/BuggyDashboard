@@ -1812,7 +1812,82 @@
       }
 
       activeItemsWithTime.sort((a, b) => a.info.seconds - b.info.seconds);
+      activeItemsWithTime.sort((a, b) => a.info.seconds - b.info.seconds);
       statEl.innerText = activeItemsWithTime[0].info.text;
+    }
+
+    let sseSource = null;
+
+    function initRealtimeStream() {
+      if (window.EventSource) {
+        if (sseSource) {
+          try { sseSource.close(); } catch (_) {}
+        }
+
+        sseSource = new EventSource('/api/stream');
+
+        sseSource.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.progress) {
+              updateScraperProgressUI(data.progress, data.totalIndexed);
+            }
+
+            if (data.items && Array.isArray(data.items)) {
+              updateItemsProgressively(data.items);
+            }
+          } catch (err) {
+            console.error('SSE parse error', err);
+          }
+        };
+
+        sseSource.onerror = function(err) {
+          console.warn('SSE stream disconnected, enabling fast poll fallback');
+          startProgressPolling();
+        };
+      } else {
+        startProgressPolling();
+      }
+    }
+
+    function updateScraperProgressUI(progress, totalIndexed) {
+      const pctText = document.getElementById('progressPctText');
+      const barFill = document.getElementById('progressBarFill');
+      const statusMsg = document.getElementById('progressStatusMsg');
+      const spinner = document.getElementById('progressSpinner');
+
+      if (pctText) pctText.innerText = `${progress.progressPct}%`;
+      if (barFill) barFill.style.width = `${progress.progressPct}%`;
+      if (statusMsg) {
+        if (progress.isScraping) {
+          statusMsg.innerText = `${progress.status} (${totalIndexed || allItems.length} items loaded)`;
+        } else {
+          statusMsg.innerText = `Ingestion Complete (${totalIndexed || allItems.length} items ready)`;
+        }
+      }
+
+      if (spinner) {
+        spinner.style.display = progress.isScraping ? 'inline-block' : 'none';
+      }
+    }
+
+    function updateItemsProgressively(newItems) {
+      if (!newItems || !newItems.length) return;
+
+      const hasLiveScraped = newItems.some(i => i.id && i.id.startsWith('scraped-'));
+      let cleanedItems = newItems;
+      if (hasLiveScraped) {
+        cleanedItems = newItems.filter(i => !(i.id && i.id.startsWith('tl-10')));
+      }
+
+      // Preserve existing items if array count changed or new items landed
+      const isNewBatch = cleanedItems.length !== allItems.length || 
+        (cleanedItems.length > 0 && allItems.length > 0 && cleanedItems[0].id !== allItems[0].id);
+
+      if (isNewBatch) {
+        allItems = cleanedItems;
+        applyFilters();
+      }
     }
 
     async function pollProgress() {
@@ -1820,16 +1895,10 @@
         const res = await fetch('/api/progress');
         const data = await res.json();
 
-        document.getElementById('progressPctText').innerText = `${data.progressPct}%`;
-        document.getElementById('progressBarFill').style.width = `${data.progressPct}%`;
-        document.getElementById('progressStatusMsg').innerText = data.status;
+        updateScraperProgressUI(data, data.totalIndexed);
 
-        const spinner = document.getElementById('progressSpinner');
-        if (data.isScraping) {
-          spinner.style.display = 'inline-block';
+        if (data.isScraping || allItems.length < (data.totalIndexed || 0)) {
           fetchCatalog();
-        } else {
-          spinner.style.display = 'none';
         }
       } catch (e) {
         console.error('Progress poll error', e);
@@ -1841,8 +1910,7 @@
         const response = await fetch('/api/scrape');
         const data = await response.json();
         if (data.success && data.items) {
-          allItems = data.items;
-          applyFilters();
+          updateItemsProgressively(data.items);
         }
       } catch (err) {
         console.error('Fetch catalog error', err);
@@ -1852,7 +1920,7 @@
     async function syncAuctionData() {
       const syncBtn = document.getElementById('syncBtn');
       syncBtn.classList.add('loading');
-      startProgressPolling();
+      initRealtimeStream();
 
       try {
         await fetchCatalog();
@@ -1864,7 +1932,7 @@
     async function extendScanDays() {
       const extendBtn = document.getElementById('extendBtn');
       extendBtn.classList.add('loading');
-      startProgressPolling();
+      initRealtimeStream();
 
       try {
         await fetch('/api/scrape?extend=true');
@@ -2084,7 +2152,7 @@
       checkAuthStatus();
       renderSidebarTags();
       syncAuctionData();
-      startProgressPolling();
+      initRealtimeStream();
       setInterval(updateLiveTimers, 1000);
     });
   </script>
