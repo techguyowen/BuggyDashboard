@@ -1,0 +1,23 @@
+{
+  "name": "tl-auction-dashboard",
+  "version": "1.0.0",
+  "description": "Triangle Liquidators Live Auction Tracking Dashboard with Puppeteer Scraper and Financial Calculator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "auction",
+    "puppeteer",
+    "scraper",
+    "express",
+    "triangle-liquidators"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^22.12.0"
+  }
+}
