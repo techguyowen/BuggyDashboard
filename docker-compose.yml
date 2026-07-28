@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  tl-auction-dashboard:
+    # Build directly from GitHub repository (techguyowen/TL-Dashboard)
+    build:
+      context: https://github.com/techguyowen/TL-Dashboard.git#main
+      dockerfile: Dockerfile
+    container_name: tl-auction-dashboard
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/progress"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

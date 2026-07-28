@@ -174,6 +174,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
   let browser = null;
   try {
     browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       headless: true,
       args: [
         '--no-sandbox',
