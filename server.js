@@ -78,9 +78,11 @@ function saveDiskCache() {
   try {
     pruneExpiredCatalogCache();
     const itemsArr = Array.from(masterCatalogMap.values());
-    fs.writeFileSync(CACHE_FILE_PATH, JSON.stringify(itemsArr), 'utf8');
+    const tmpPath = `${CACHE_FILE_PATH}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(itemsArr), 'utf8');
+    fs.renameSync(tmpPath, CACHE_FILE_PATH);
     lastCatalogUpdateTime = Date.now();
-    console.log(`[DISK CACHE] Persisted ${itemsArr.length} catalog items to ./catalog_cache.json`);
+    console.log(`[DISK CACHE] Persisted ${itemsArr.length} catalog items atomically to ./catalog_cache.json`);
   } catch (e) {
     console.error('[DISK CACHE SAVE ERROR]', e.message);
   }

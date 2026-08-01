@@ -2323,6 +2323,10 @@
           body: JSON.stringify({ localWatchlistUrls: localUrls })
         });
 
+        if (!res.ok && res.status !== 401) {
+          throw new Error(`Server returned error status (${res.status})`);
+        }
+
         const data = await res.json();
 
         if (data.success && data.remoteItems) {
@@ -3348,8 +3352,10 @@
       }
 
       const itemsToRender = currentFilteredItems.slice(0, currentRenderCount);
-      grid.innerHTML = itemsToRender.map(renderCardHTML).join('');
-      document.getElementById('visibleCount').innerText = `${Math.min(currentRenderCount, currentFilteredItems.length)}`;
+      requestAnimationFrame(() => {
+        grid.innerHTML = itemsToRender.map(renderCardHTML).join('');
+        document.getElementById('visibleCount').innerText = `${Math.min(currentRenderCount, currentFilteredItems.length)}`;
+      });
     }
 
     let scrollTicking = false;
