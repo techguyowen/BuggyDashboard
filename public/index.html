@@ -1416,7 +1416,7 @@
       <div class="filter-group">
         <div class="filter-label">
           <span>🔥 Watchlist Highlights</span>
-          <button class="reset-btn" onclick="openWatchlistModal()"><i class="fa-solid fa-pen"></i> Edit</button>
+          <button class="reset-btn" onclick="openSettingsModal('keywords')"><i class="fa-solid fa-pen"></i> Edit</button>
         </div>
         <div id="sidebarWatchlistTags" class="watchlist-tags">
           <!-- Rendered dynamically -->
@@ -1427,7 +1427,7 @@
       <div class="filter-group">
         <div class="filter-label">
           <span><i class="fa-solid fa-filter-circle-xmark" style="color: #ef4444;"></i> Excluded Keywords</span>
-          <button class="reset-btn" onclick="openWatchlistModal()"><i class="fa-solid fa-pen"></i> Edit</button>
+          <button class="reset-btn" onclick="openSettingsModal('keywords')"><i class="fa-solid fa-pen"></i> Edit</button>
         </div>
         <div id="sidebarExcludeTags" class="watchlist-tags">
           <!-- Rendered dynamically -->
@@ -2486,10 +2486,15 @@
     }
 
     /* DEDICATED MODAL CONTROLLERS */
-    function openSettingsModal() {
+    function openSettingsModal(tabName = 'keywords') {
       renderModalTags();
       applyUserSettingsToUI();
+      if (tabName) switchSettingsTab(tabName);
       document.getElementById('settingsModal').classList.add('open');
+    }
+
+    function openWatchlistModal(tabName = 'keywords') {
+      openSettingsModal(tabName);
     }
 
     function closeSettingsModal() {
