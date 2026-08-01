@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    volumes:
+      - ./catalog_cache.json:/app/catalog_cache.json
     environment:
       - PORT=3001
       - NODE_ENV=production

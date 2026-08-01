@@ -1,10 +1,15 @@
 const express = require('express');
+const compression = require('compression');
 const puppeteer = require('puppeteer');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const CACHE_FILE_PATH = path.join(__dirname, 'catalog_cache.json');
+let lastCatalogUpdateTime = Date.now();
 
+app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
@@ -48,6 +53,41 @@ let scraperProgress = {
   currentAuction: "",
   scrapedDaysCount: 0
 };
+
+function loadDiskCache() {
+  try {
+    if (fs.existsSync(CACHE_FILE_PATH)) {
+      const raw = fs.readFileSync(CACHE_FILE_PATH, 'utf8');
+      const savedItems = JSON.parse(raw);
+      if (Array.isArray(savedItems) && savedItems.length > 0) {
+        savedItems.forEach(item => {
+          masterCatalogMap.set(item.id || item.url, item);
+        });
+        pruneExpiredCatalogCache();
+        lastCatalogUpdateTime = Date.now();
+        scraperProgress.totalIndexed = masterCatalogMap.size;
+        console.log(`[DISK CACHE] Loaded ${masterCatalogMap.size} auction items from ./catalog_cache.json in <0.05s!`);
+      }
+    }
+  } catch (e) {
+    console.error('[DISK CACHE LOAD ERROR]', e.message);
+  }
+}
+
+function saveDiskCache() {
+  try {
+    pruneExpiredCatalogCache();
+    const itemsArr = Array.from(masterCatalogMap.values());
+    fs.writeFileSync(CACHE_FILE_PATH, JSON.stringify(itemsArr), 'utf8');
+    lastCatalogUpdateTime = Date.now();
+    console.log(`[DISK CACHE] Persisted ${itemsArr.length} catalog items to ./catalog_cache.json`);
+  } catch (e) {
+    console.error('[DISK CACHE SAVE ERROR]', e.message);
+  }
+}
+
+// Automatically load cached catalog on boot
+loadDiskCache();
 
 let sseClients = [];
 
@@ -332,10 +372,30 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
 
               let category = 'General Merchandise';
               const tLower = titleClean.toLowerCase();
-              if (tLower.includes('tool') || tLower.includes('drill') || tLower.includes('saw') || tLower.includes('dewalt') || tLower.includes('milwaukee') || tLower.includes('craftsman') || tLower.includes('ryobi')) category = 'Tools & Equipment';
-              else if (tLower.includes('patio') || tLower.includes('trimmer') || tLower.includes('lawn') || tLower.includes('washer') || tLower.includes('hose')) category = 'Lawn & Garden';
-              else if (tLower.includes('cooker') || tLower.includes('ninja') || tLower.includes('kitchen') || tLower.includes('fryer')) category = 'Kitchen & Home';
-              else if (tLower.includes('generator') || tLower.includes('power') || tLower.includes('inverter') || tLower.includes('watt')) category = 'Generators & Power';
+
+              if (tLower.includes('tool') || tLower.includes('drill') || tLower.includes('saw') || tLower.includes('dewalt') || tLower.includes('milwaukee') || tLower.includes('craftsman') || tLower.includes('ryobi') || tLower.includes('impact') || tLower.includes('wrench') || tLower.includes('kobalt') || tLower.includes('socket') || tLower.includes('compressor')) {
+                category = 'Tools & Equipment';
+              } else if (tLower.includes('tv') || tLower.includes('nintendo') || tLower.includes('switch') || tLower.includes('gaming') || tLower.includes('playstation') || tLower.includes('xbox') || tLower.includes('laptop') || tLower.includes('desktop') || tLower.includes('tablet') || tLower.includes('ipad') || tLower.includes('monitor') || tLower.includes('headphone') || tLower.includes('audio') || tLower.includes('camera') || tLower.includes('speaker')) {
+                category = 'Electronics & Gaming';
+              } else if ((tLower.includes('washer') && !tLower.includes('pressure washer')) || tLower.includes('dryer') || tLower.includes('refrigerator') || tLower.includes('fridge') || tLower.includes('freezer') || tLower.includes('dishwasher') || tLower.includes('mini split') || tLower.includes('air conditioner') || tLower.includes('water heater')) {
+                category = 'Major Appliances';
+              } else if (tLower.includes('patio') || tLower.includes('trimmer') || tLower.includes('lawn') || tLower.includes('mower') || tLower.includes('pressure washer') || tLower.includes('hose') || tLower.includes('tiller') || tLower.includes('chainsaw') || tLower.includes('grill') || tLower.includes('smoker') || tLower.includes('traeger')) {
+                category = 'Lawn & Garden';
+              } else if (tLower.includes('ninja') || tLower.includes('kitchen') || tLower.includes('cooker') || tLower.includes('fryer') || tLower.includes('blender') || tLower.includes('instant pot') || tLower.includes('coffee') || tLower.includes('espresso') || tLower.includes('toaster') || tLower.includes('cookware') || tLower.includes('ice maker')) {
+                category = 'Kitchen & Dining';
+              } else if (tLower.includes('sofa') || tLower.includes('couch') || tLower.includes('bed') || tLower.includes('mattress') || tLower.includes('desk') || tLower.includes('chair') || tLower.includes('table') || tLower.includes('cabinet') || tLower.includes('shelf') || tLower.includes('rug') || tLower.includes('recliner') || tLower.includes('furniture') || tLower.includes('ottoman')) {
+                category = 'Furniture & Home Decor';
+              } else if (tLower.includes('generator') || tLower.includes('power') || tLower.includes('inverter') || tLower.includes('solar') || tLower.includes('eco-flow') || tLower.includes('jackery') || tLower.includes('watt')) {
+                category = 'Generators & Solar Power';
+              } else if (tLower.includes('tire') || tLower.includes('jack') || tLower.includes('battery charger') || tLower.includes('jump starter') || tLower.includes('winch') || tLower.includes('automotive') || tLower.includes('trailer') || tLower.includes('hitch')) {
+                category = 'Automotive & Marine';
+              } else if (tLower.includes('bike') || tLower.includes('bicycle') || tLower.includes('scooter') || tLower.includes('e-bike') || tLower.includes('treadmill') || tLower.includes('exercise') || tLower.includes('fitness') || tLower.includes('kayak') || tLower.includes('tent') || tLower.includes('camping') || tLower.includes('cooler') || tLower.includes('yeti')) {
+                category = 'Sports, Fitness & Outdoors';
+              } else if (tLower.includes('pump') || tLower.includes('sink') || tLower.includes('faucet') || tLower.includes('toilet') || tLower.includes('shower') || tLower.includes('plumbing') || tLower.includes('hardware') || tLower.includes('flooring') || tLower.includes('tile')) {
+                category = 'Hardware & Plumbing';
+              } else if (tLower.includes('pallet') || tLower.includes('bulk') || tLower.includes('wholesale') || tLower.includes('mystery box') || tLower.includes('liquidation')) {
+                category = 'Pallets & Bulk Merchandise';
+              }
 
               let closingDate = new Date().toISOString().split('T')[0];
               let endsAtISO = null;
@@ -422,9 +482,12 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
           }
 
           pageItems.forEach(item => {
-            masterCatalogMap.set(item.id || item.url, {
+            const key = item.id || item.url;
+            const existing = masterCatalogMap.get(key);
+            masterCatalogMap.set(key, {
               ...item,
-              financials: calculateFinancials(item.currentBid, item.retailPrice)
+              financials: calculateFinancials(item.currentBid, item.retailPrice),
+              indexedAt: existing ? existing.indexedAt : Date.now()
             });
           });
 
@@ -459,6 +522,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
     scraperProgress.isScraping = false;
     scraperProgress.status = "Complete";
     scraperProgress.progressPct = 100;
+    saveDiskCache();
 
     const finalItems = Array.from(masterCatalogMap.values()).map(item => ({
       ...item,
@@ -471,16 +535,111 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
   }
 }
 
-// Initial deep crawl (6 catalogs x 8 pages)
-crawlDeepAuctionPages(6, 8);
-setInterval(() => crawlDeepAuctionPages(6, 8), 240000);
+/**
+ * In-Memory Catalog Cache Optimization & Expired Lot Pruning
+ */
+function pruneExpiredCatalogCache() {
+  const nowMs = Date.now();
+  const twelveHoursMs = 12 * 60 * 60 * 1000;
+  let prunedCount = 0;
+
+  for (const [id, item] of masterCatalogMap.entries()) {
+    // 1. Check if auction ended > 12 hours ago
+    const endsAtMs = item.endsAt ? new Date(item.endsAt).getTime() : NaN;
+    if (!isNaN(endsAtMs) && (nowMs - endsAtMs > twelveHoursMs)) {
+      masterCatalogMap.delete(id);
+      prunedCount++;
+      continue;
+    }
+
+    // 2. Fallback check for closingDate older than 12h
+    if (item.closingDate) {
+      const closingMs = new Date(`${item.closingDate}T23:59:59-04:00`).getTime();
+      if (!isNaN(closingMs) && (nowMs - closingMs > twelveHoursMs)) {
+        masterCatalogMap.delete(id);
+        prunedCount++;
+      }
+    }
+  }
+
+  // 3. LRU/FIFO Capacity Guard (Cap map size at 12,000 items max)
+  const MAX_CACHE_ITEMS = 12000;
+  if (masterCatalogMap.size > MAX_CACHE_ITEMS) {
+    const keysToEvict = Array.from(masterCatalogMap.keys()).slice(0, masterCatalogMap.size - MAX_CACHE_ITEMS);
+    keysToEvict.forEach(k => {
+      masterCatalogMap.delete(k);
+      prunedCount++;
+    });
+  }
+
+  if (prunedCount > 0) {
+    console.log(`[CACHE OPTIMIZATION] Pruned ${prunedCount} expired/stale auction items from in-memory catalog cache. Remaining capacity: ${masterCatalogMap.size} items.`);
+    scraperProgress.totalIndexed = masterCatalogMap.size;
+  }
+}
+
+let crawlerIntervalSec = 60;
+let crawlerTimer = null;
+
+function updateCrawlerSchedule(intervalSec) {
+  const parsed = parseInt(intervalSec, 10);
+  if (isNaN(parsed) || parsed < 0) return crawlerIntervalSec;
+
+  crawlerIntervalSec = parsed;
+
+  if (crawlerTimer) {
+    clearInterval(crawlerTimer);
+    crawlerTimer = null;
+  }
+
+  if (crawlerIntervalSec > 0) {
+    const ms = Math.max(15, crawlerIntervalSec) * 1000;
+    console.log(`[DEEP CRAWLER SCHEDULER] Background crawler scheduled to run every ${crawlerIntervalSec} seconds (${ms} ms).`);
+    crawlerTimer = setInterval(() => {
+      pruneExpiredCatalogCache();
+      crawlDeepAuctionPages(6, 8);
+    }, ms);
+  } else {
+    console.log(`[DEEP CRAWLER SCHEDULER] Background crawler automatic loop paused (Manual Sync mode).`);
+  }
+
+  return crawlerIntervalSec;
+}
+
+// Initial scheduler init (only crawl on boot if catalog cache is completely empty)
+pruneExpiredCatalogCache();
+if (masterCatalogMap.size === 0) {
+  console.log('[DEEP CRAWLER] Empty catalog cache detected. Initializing first-run catalog crawl...');
+  crawlDeepAuctionPages(6, 8);
+} else {
+  console.log(`[DEEP CRAWLER] Master catalog ready with ${masterCatalogMap.size} cached items.`);
+}
+updateCrawlerSchedule(60);
+
+// Run cache pruning every 30 minutes
+setInterval(pruneExpiredCatalogCache, 30 * 60 * 1000);
 
 // API Endpoint for Live Scraper Progress
 app.get('/api/progress', (req, res) => {
   res.json({
     ...scraperProgress,
-    totalIndexed: masterCatalogMap.size
+    totalIndexed: masterCatalogMap.size,
+    crawlerIntervalSec
   });
+});
+
+// API Endpoints for Crawler Settings Synchronization
+app.post('/api/crawler-settings', (req, res) => {
+  const { intervalSec } = req.body || {};
+  if (intervalSec !== undefined) {
+    const updated = updateCrawlerSchedule(intervalSec);
+    return res.json({ success: true, crawlerIntervalSec: updated });
+  }
+  res.status(400).json({ success: false, error: 'Missing intervalSec parameter' });
+});
+
+app.get('/api/crawler-settings', (req, res) => {
+  res.json({ success: true, crawlerIntervalSec });
 });
 
 // Real-Time Server-Sent Events (SSE) Progressive Stream Endpoint
@@ -536,23 +695,33 @@ function ensureEndsAt(item) {
   return fallback.toISOString();
 }
 
-// API Endpoint for Live Items
+// API Endpoint for Live Items with ETag Caching & Incremental Delta Support
 app.get('/api/scrape', async (req, res) => {
   const extend = req.query.extend === 'true';
-  const refresh = req.query.refresh === 'true' || req.query.force === 'true';
+  const force = req.query.force === 'true';
+  const refresh = req.query.refresh === 'true' || force;
+  const since = parseInt(req.query.since || '0', 10);
 
   if (extend) {
-    // Extended scan (6 catalogs x 12 pages)
-    crawlDeepAuctionPages(6, 12);
-  } else if (refresh) {
+    console.log('[DEEP CRAWLER] Triggering extended deep scan across 10 catalogs x 15 pages...');
+    crawlDeepAuctionPages(10, 15, true);
+  } else if (force || (refresh && crawlerIntervalSec > 0)) {
     crawlDeepAuctionPages(6, 8);
+  }
+
+  // Generate ETag header based on catalog count & timestamp
+  const etag = `W/"catalog-${masterCatalogMap.size}-${lastCatalogUpdateTime}"`;
+  res.setHeader('ETag', etag);
+
+  // Return HTTP 304 Not Modified if client catalog is current and no force refresh requested
+  if (!refresh && !extend && since === 0 && req.headers['if-none-match'] === etag) {
+    return res.status(304).end();
   }
 
   let itemsArr = Array.from(masterCatalogMap.values());
   const hasLiveScraped = itemsArr.some(i => i.id && i.id.startsWith('scraped-'));
 
   if (hasLiveScraped) {
-    // Purge demo fallback items once live website lots exist
     itemsArr = itemsArr.filter(i => !(i.id && i.id.startsWith('tl-10')));
   }
 
@@ -561,11 +730,21 @@ app.get('/api/scrape', async (req, res) => {
     endsAt: ensureEndsAt(item)
   }));
 
+  // Delta Sync support: if 'since' timestamp provided, filter only newer items
+  let resultItems = sanitizedItems;
+  let isDelta = false;
+  if (since > 0) {
+    resultItems = sanitizedItems.filter(item => (item.indexedAt || 0) > since);
+    isDelta = true;
+  }
+
   res.json({
     success: true,
-    timestamp: new Date().toISOString(),
-    count: sanitizedItems.length,
-    items: sanitizedItems
+    isDelta: isDelta,
+    lastCatalogUpdate: lastCatalogUpdateTime,
+    count: resultItems.length,
+    totalIndexed: sanitizedItems.length,
+    items: resultItems
   });
 });
 
