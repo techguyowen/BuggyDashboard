@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+
+    <!-- Triangle Crest Gradient -->
+    <linearGradient id="triGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+
+    <!-- Gavel Gold Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="8" />
+
+  <!-- Outer Glowing Triangle Shield -->
+  <polygon points="256,64 432,380 80,380" fill="none" stroke="url(#triGrad)" stroke-width="24" stroke-linejoin="round" filter="url(#glow)" opacity="0.9" />
+
+  <!-- Inner Solid Triangle Accent -->
+  <polygon points="256,110 400,360 112,360" fill="rgba(99, 102, 241, 0.15)" stroke="url(#triGrad)" stroke-width="8" stroke-linejoin="round" />
+
+  <!-- Stylized Auction Gavel (Center Icon) -->
+  <g transform="translate(256, 260) rotate(-35) translate(-256, -260)" filter="url(#glow)">
+    <!-- Gavel Handle -->
+    <rect x="242" y="220" width="28" height="170" rx="14" fill="url(#goldGrad)" />
+    <rect x="247" y="360" width="18" height="24" rx="6" fill="#92400e" />
+
+    <!-- Gavel Head -->
+    <rect x="156" y="170" width="200" height="70" rx="18" fill="url(#goldGrad)" />
+    <!-- Gavel Head Metal Rings -->
+    <rect x="180" y="170" width="14" height="70" fill="#fef08a" opacity="0.8" />
+    <rect x="318" y="170" width="14" height="70" fill="#fef08a" opacity="0.8" />
+
+    <!-- Sound Block Base -->
+    <path d="M 140,390 L 372,390 L 390,414 L 122,414 Z" fill="url(#triGrad)" />
+  </g>
+
+  <!-- Sparkle Accent -->
+  <circle cx="390" cy="110" r="16" fill="#fbbf24" filter="url(#glow)" />
+</svg>
