@@ -2293,6 +2293,7 @@
 
       syncBtn.classList.add('loading');
       if (dot) dot.className = 'status-dot syncing';
+      showToastNotice('🔄 Syncing Watchlist with Triangle Liquidators account...');
 
       try {
         const localUrls = Array.from(savedFavoriteUrls);
@@ -2307,20 +2308,29 @@
         if (data.success && data.remoteItems) {
           data.remoteItems.forEach(item => {
             savedFavoriteUrls.add(item.url);
-            if (!allItems.some(i => i.url === item.url)) {
-              allItems.unshift(item);
+            const existingIdx = allItems.findIndex(i => i.url === item.url);
+            if (existingIdx !== -1) {
+              // Merge/update item with latest scraped catalog metadata
+              allItems[existingIdx] = { ...allItems[existingIdx], ...item };
+            } else {
+              allItems.push(item);
             }
           });
 
           saveFavoritesState();
           applyFilters();
           await checkAuthStatus();
+          showToastNotice(`✅ Watchlist Synced! ${data.remoteItems.length} active watched items synced.`);
         } else if (res.status === 401) {
           await checkAuthStatus();
           openCredentialsModal();
+          showToastNotice('⚠️ Account session expired. Please reconnect your account.');
+        } else {
+          showToastNotice(`⚠️ Watchlist sync issue: ${data.error || 'Failed to sync'}`);
         }
       } catch (e) {
         console.error('Sync watchlist error', e);
+        showToastNotice(`❌ Sync Error: ${e.message}`);
       } finally {
         syncBtn.classList.remove('loading');
         if (dot) dot.className = authState.isLoggedIn ? 'status-dot connected' : 'status-dot disconnected';
@@ -2380,13 +2390,10 @@
       applyFilters();
     }
 
-    function clearStaleFavorites() {
-      if (savedFavoriteUrls.size === 0) {
-        showToastNotice('ℹ️ No saved favorites to clean.');
-        return;
-      }
-
+    async function clearStaleFavorites() {
       let purgedCount = 0;
+
+      // 1. Clear ended/stale items from saved favorites
       Array.from(savedFavoriteUrls).forEach(url => {
         const matchItem = allItems.find(i => i.url === url);
         let isStale = false;
@@ -2405,13 +2412,32 @@
         }
       });
 
+      // 2. Clear ended items from in-memory allItems array
+      const initialItemCount = allItems.length;
+      allItems = allItems.filter(item => {
+        const info = formatTimeRemaining(item.endsAt, item.closingDate);
+        return info.seconds > 0;
+      });
+      const removedItemsCount = initialItemCount - allItems.length;
+
       saveFavoritesState();
       applyFilters();
 
-      if (purgedCount > 0) {
-        showToastNotice(`🧹 Cleared ${purgedCount} stale/past item(s) from Saved Favorites!`);
+      // 3. Trigger backend server past item purge
+      try {
+        const res = await fetch('/api/watchlist/clear-past', { method: 'POST' });
+        const data = await res.json();
+        if (data.success && data.clearedCount > 0) {
+          purgedCount += data.clearedCount;
+        }
+      } catch (e) {
+        console.error('Clear past endpoint error:', e);
+      }
+
+      if (purgedCount > 0 || removedItemsCount > 0) {
+        showToastNotice(`🧹 Cleared ${purgedCount + removedItemsCount} past/ended item(s) and stale favorites!`);
       } else {
-        showToastNotice('✅ All saved favorites are active and present in the pull.');
+        showToastNotice('✅ All auction items and saved favorites are active.');
       }
     }
 
@@ -2936,7 +2962,11 @@
         catalogMap.set(key, item);
       });
 
-      allItems = Array.from(catalogMap.values());
+      allItems = Array.from(catalogMap.values()).filter(i => 
+        i.auctionName !== 'Synced Watchlist Auction' && 
+        i.category !== 'Watched Items' && 
+        !(i.id && i.id.startsWith('watched-'))
+      );
       autoCleanEndedFavorites();
 
       if (shouldSaveDB) {

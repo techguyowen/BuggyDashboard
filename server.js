@@ -544,6 +544,13 @@ function pruneExpiredCatalogCache() {
   let prunedCount = 0;
 
   for (const [id, item] of masterCatalogMap.entries()) {
+    // 0. Purge any legacy synthetic stub items
+    if (item.auctionName === 'Synced Watchlist Auction' || item.category === 'Watched Items' || id.startsWith('watched-')) {
+      masterCatalogMap.delete(id);
+      prunedCount++;
+      continue;
+    }
+
     // 1. Check if auction ended > 12 hours ago
     const endsAtMs = item.endsAt ? new Date(item.endsAt).getTime() : NaN;
     if (!isNaN(endsAtMs) && (nowMs - endsAtMs > twelveHoursMs)) {
@@ -787,16 +794,45 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     console.log(`[AUTH] Headless authentication attempt for user: ${username}`);
     browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     });
 
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
-    await page.goto('https://auction.triangleliquidators.com/', { waitUntil: 'networkidle2', timeout: 25000 });
+    await page.goto('https://auction.triangleliquidators.com/login', { waitUntil: 'networkidle2', timeout: 25000 });
 
+    await page.waitForSelector('#username', { timeout: 10000 });
+    await page.type('#username', username, { delay: 20 });
+    await page.type('#password', password, { delay: 20 });
+
+    await Promise.all([
+      page.click('.email-login, input[type="submit"]'),
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => null)
+    ]);
+
+    const currentUrl = page.url();
+    const bodyText = await page.evaluate(() => document.body.innerText || '');
+    const isInvalid = currentUrl.includes('/login') && (
+      bodyText.toLowerCase().includes('invalid login credentials') ||
+      bodyText.toLowerCase().includes('incorrect username or password') ||
+      bodyText.toLowerCase().includes('invalid password') ||
+      bodyText.toLowerCase().includes('login failed')
+    );
+
+    if (isInvalid) {
+      if (browser) await browser.close();
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid login credentials for Triangle Liquidators account.'
+      });
+    }
+
+    const cookies = await page.cookies();
     authSession.isLoggedIn = true;
     authSession.email = username;
+    authSession.cookies = cookies;
     authSession.lastSyncTime = new Date().toISOString();
 
     if (browser) await browser.close();
@@ -810,15 +846,9 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('[AUTH ERROR]', err.message);
     if (browser) await browser.close();
 
-    // Fallback: validate session
-    authSession.isLoggedIn = true;
-    authSession.email = username;
-    authSession.lastSyncTime = new Date().toISOString();
-
-    return res.json({
-      success: true,
-      message: `Account connected for ${username}.`,
-      email: username
+    return res.status(500).json({
+      success: false,
+      error: `Authentication failed: ${err.message}`
     });
   }
 });
@@ -835,28 +865,314 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Watchlist Sync Endpoint
-app.post('/api/watchlist/sync', (req, res) => {
+app.post('/api/watchlist/sync', async (req, res) => {
   if (!authSession.isLoggedIn) {
     return res.status(401).json({ success: false, error: 'Unauthorized. Please connect your account.' });
   }
 
-  const { localWatchlistUrls } = req.body || {};
+  const { localWatchlistUrls = [] } = req.body || {};
+  let browser = null;
+
+  try {
+    console.log(`[WATCHLIST SYNC] Starting sync for user: ${authSession.email}`);
+    browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+    });
+
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+    if (authSession.cookies && authSession.cookies.length > 0) {
+      await page.setCookie(...authSession.cookies);
+    }
+
+    // Navigate to watched-lots page
+    await page.goto('https://auction.triangleliquidators.com/watched-lots', { waitUntil: 'networkidle2', timeout: 25000 });
+
+    const pageUrl = page.url();
+    if (pageUrl.includes('/login')) {
+      authSession.isLoggedIn = false;
+      authSession.cookies = [];
+      if (browser) await browser.close();
+      return res.status(401).json({ success: false, error: 'Session expired. Please reconnect your account.' });
+    }
+
+    // Extract watched lots
+    const remoteWatchedLots = await page.evaluate(() => {
+      const items = [];
+      const lotCards = document.querySelectorAll('.lot-item, .lot-card, [id^="lot-"], .lotTile, div.lot, div[data-lot-id]');
+
+      lotCards.forEach(card => {
+        const linkEl = card.querySelector('a[href*="/lots/view/"]');
+        if (!linkEl) return;
+
+        const titleEl = card.querySelector('.lot-title, .title, h3, h4') || linkEl;
+        const imgEl = card.querySelector('img');
+        const bidEl = card.querySelector('.current-bid, .bid-amount, .price, [ng-bind*="bid"]');
+        const retailEl = card.querySelector('.retail-price, .msrp, [ng-bind*="retail"]');
+
+        const cardText = card.innerText || '';
+        const isEndedText = cardText.toLowerCase().includes('auction closed') ||
+                            cardText.toLowerCase().includes('bidding closed') ||
+                            cardText.toLowerCase().includes('ended') ||
+                            card.querySelector('.status-ended, .closed, .ended') !== null;
+
+        const title = titleEl ? titleEl.innerText.trim() : '';
+        const url = linkEl.href;
+        const image = imgEl ? (imgEl.src || imgEl.getAttribute('data-src')) : '';
+        const rawBid = bidEl ? bidEl.innerText.replace(/[^0-9.]/g, '') : '0';
+        const rawRetail = retailEl ? retailEl.innerText.replace(/[^0-9.]/g, '') : '';
+
+        // Exclude items explicitly marked as closed/ended
+        if (url && !isEndedText && !items.some(i => i.url === url)) {
+          items.push({
+            title,
+            url,
+            image,
+            currentBid: parseFloat(rawBid) || 0,
+            retailPrice: rawRetail ? parseFloat(rawRetail) : null
+          });
+        }
+      });
+
+      // Fallback: if cards were not structured with .lot-item wrapper, grab all /lots/view/ links
+      if (items.length === 0) {
+        const allLinks = Array.from(document.querySelectorAll('a[href*="/lots/view/"]'));
+        allLinks.forEach(a => {
+          const title = a.innerText.trim();
+          const parentText = a.parentElement ? a.parentElement.innerText : '';
+          const isEnded = parentText.toLowerCase().includes('closed') || parentText.toLowerCase().includes('ended');
+          if (title && a.href && !isEnded && !items.some(i => i.url === a.href)) {
+            items.push({ title, url: a.href, currentBid: 0 });
+          }
+        });
+      }
+
+      return items;
+    });
+
+    console.log(`[WATCHLIST SYNC] Found ${remoteWatchedLots.length} active items in remote watched lots.`);
+
+    function extractLotKey(urlStr) {
+      if (!urlStr) return '';
+      const match = urlStr.match(/\/lots\/view\/([^\/\?#]+)/i);
+      if (match) return match[1].toLowerCase();
+      const itemMatch = urlStr.match(/item-?(\d+)/i);
+      if (itemMatch) return itemMatch[1].toLowerCase();
+      return urlStr.toLowerCase().replace(/^https?:\/\/[^\/]+/, '').replace(/\/$/, '');
+    }
+
+    // Match or populate active items into masterCatalogMap with real scraped data
+    const nowMs = Date.now();
+    const remoteItems = [];
+    for (const remote of remoteWatchedLots) {
+      const remoteKey = extractLotKey(remote.url);
+      let catalogItem = null;
+
+      for (const item of masterCatalogMap.values()) {
+        if (extractLotKey(item.url) === remoteKey) {
+          catalogItem = item;
+          break;
+        }
+      }
+
+      if (catalogItem) {
+        // Exclude past/ended items from sync
+        const endsMs = catalogItem.endsAt ? new Date(catalogItem.endsAt).getTime() : NaN;
+        if (!isNaN(endsMs) && endsMs <= nowMs) {
+          continue; // Skip past item
+        }
+        if (catalogItem.closingDate) {
+          const closingMs = new Date(`${catalogItem.closingDate}T23:59:59-04:00`).getTime();
+          if (!isNaN(closingMs) && closingMs < nowMs) continue; // Skip past item
+        }
+        remoteItems.push(catalogItem);
+      } else {
+        // Fetch real lot HTML on-demand so item has real title, real image, real location & real data position
+        try {
+          const lotRes = await fetch(remote.url);
+          if (lotRes.ok) {
+            const html = await lotRes.text();
+            const realTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            const realTitle = realTitleMatch ? realTitleMatch[1].replace(/\|.*/, '').trim() : remote.title;
+            const realImgMatch = html.match(/https:\/\/images-cdn\.auctionmobility\.com\/is3\/[^\s"'\>]+/i);
+            const realImg = realImgMatch ? realImgMatch[0].replace(/&amp;/g, '&') : (remote.image || '');
+            const isAnderson = html.toLowerCase().includes('anderson') || html.toLowerCase().includes('williamston');
+            const realLocation = isAnderson ? 'SC Transfer' : 'Raleigh';
+            const realAddress = isAnderson ? 'Williamston / Anderson, SC Transfer Depot' : '1101 Transport Dr, Raleigh, NC 27603';
+
+            const isEnded = html.toLowerCase().includes('auction closed') || html.toLowerCase().includes('bidding closed');
+            if (isEnded) continue; // Do not import closed item
+
+            const auctionMatch = html.match(/<a[^>]+href="[^"]*\/auctions\/1-[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
+            const realAuctionName = auctionMatch ? auctionMatch[1].replace(/<[^>]+>/g, '').trim() : `${realLocation} Live Auction`;
+
+            const catMatch = html.match(/category:\s*["']?([^"'\n<]+)/i);
+            const realCategory = catMatch ? catMatch[1].trim() : 'General Merchandise';
+
+            const now = new Date();
+            const id = 'scraped-' + (remoteKey || Math.random().toString(36).substr(2, 9));
+            const newItem = {
+              id,
+              title: realTitle || remote.title || 'Auction Item',
+              url: remote.url,
+              image: realImg || 'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=600&q=80',
+              currentBid: remote.currentBid || 0,
+              retailPrice: remote.retailPrice || null,
+              brand: (realTitle || '').split(' ')[0] || 'Generic',
+              condition: 'Condition: Checked via Account Sync',
+              location: realLocation,
+              address: realAddress,
+              category: realCategory,
+              auctionName: realAuctionName,
+              closingDate: now.toISOString().split('T')[0],
+              endsAt: new Date(now.getTime() + 12 * 3600 * 1000).toISOString(),
+              financials: calculateFinancials(remote.currentBid || 0, remote.retailPrice)
+            };
+            masterCatalogMap.set(id, newItem);
+            remoteItems.push(newItem);
+          }
+        } catch (e) {
+          console.error(`[SYNC REAL SCRAPE ERROR] ${remote.url}:`, e.message);
+        }
+      }
+    }
+
+    // Bi-directional sync: If client has localWatchlistUrls that aren't watched on remote site, watch them remotely
+    const remoteUrlSet = new Set(remoteWatchedLots.map(i => i.url));
+    const itemsToRemoteWatch = localWatchlistUrls.filter(url => !remoteUrlSet.has(url));
+
+    if (itemsToRemoteWatch.length > 0) {
+      console.log(`[WATCHLIST SYNC] Syncing ${itemsToRemoteWatch.length} local items to remote account...`);
+      for (const targetUrl of itemsToRemoteWatch.slice(0, 5)) { // batch limit to 5 per sync for performance
+        try {
+          await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 12000 });
+          const watchBtn = await page.waitForSelector('.watch-lot, .watch-icon, button[ng-click*="watchLot"]', { timeout: 6000 }).catch(() => null);
+          if (watchBtn) {
+            const isWatched = await page.evaluate(el => {
+              const text = (el.innerText || '').toLowerCase();
+              const className = el.className || '';
+              return text.includes('unwatch') || className.includes('watched') || className.includes('unwatch');
+            }, watchBtn);
+            if (!isWatched) {
+              await watchBtn.click();
+              await page.evaluate(() => new Promise(r => setTimeout(r, 500)));
+            }
+          }
+        } catch (e) {
+          console.error(`[WATCHLIST SYNC] Failed to watch ${targetUrl} on remote:`, e.message);
+        }
+      }
+    }
+
+    // Refresh saved session cookies
+    authSession.cookies = await page.cookies();
+    authSession.lastSyncTime = new Date().toISOString();
+
+    if (browser) await browser.close();
+
+    return res.json({
+      success: true,
+      message: `Watchlist synced successfully. ${remoteItems.length} active items imported from Triangle Liquidators account.`,
+      remoteItems,
+      syncedCount: remoteItems.length
+    });
+  } catch (err) {
+    console.error('[WATCHLIST SYNC ERROR]', err.message);
+    if (browser) await browser.close();
+    return res.status(500).json({ success: false, error: `Watchlist sync failed: ${err.message}` });
+  }
+});
+
+// Clear Past / Ended Items Endpoint
+app.post(['/api/watchlist/clear-past', '/api/catalog/clear-past'], (req, res) => {
+  const nowMs = Date.now();
+  let clearedCount = 0;
+
+  for (const [id, item] of masterCatalogMap.entries()) {
+    let isPast = false;
+    if (id.startsWith('watched-')) {
+      isPast = true;
+    }
+    if (!isPast && item.endsAt) {
+      const endsMs = new Date(item.endsAt).getTime();
+      if (!isNaN(endsMs) && endsMs <= nowMs) isPast = true;
+    }
+    if (!isPast && item.closingDate) {
+      const closingMs = new Date(`${item.closingDate}T23:59:59-04:00`).getTime();
+      if (!isNaN(closingMs) && closingMs < nowMs) isPast = true;
+    }
+
+    if (isPast) {
+      masterCatalogMap.delete(id);
+      clearedCount++;
+    }
+  }
+
+  saveDiskCache();
+  console.log(`[CLEAR PAST] Cleared ${clearedCount} ended/stale items from master catalog. ${masterCatalogMap.size} active items remaining.`);
+
   res.json({
     success: true,
-    message: 'Watchlist synced successfully.',
-    remoteItems: [],
-    syncedCount: (localWatchlistUrls || []).length
+    message: `Cleared ${clearedCount} ended/stale items from master catalog.`,
+    clearedCount,
+    remainingCount: masterCatalogMap.size
   });
 });
 
 // Watchlist Remote Watch Toggle Endpoint
-app.post('/api/watchlist/remote-watch', (req, res) => {
+app.post('/api/watchlist/remote-watch', async (req, res) => {
   const { url, watch } = req.body || {};
-  res.json({
-    success: true,
-    url,
-    watch
-  });
+  if (!url) {
+    return res.status(400).json({ success: false, error: 'Item URL is required.' });
+  }
+
+  if (!authSession.isLoggedIn) {
+    return res.json({ success: true, url, watch, note: 'Saved locally (Account not connected).' });
+  }
+
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+    });
+
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+    if (authSession.cookies && authSession.cookies.length > 0) {
+      await page.setCookie(...authSession.cookies);
+    }
+
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    const watchBtn = await page.waitForSelector('.watch-lot, .watch-icon, button[ng-click*="watchLot"]', { timeout: 7000 }).catch(() => null);
+
+    if (watchBtn) {
+      const isWatched = await page.evaluate(el => {
+        const text = (el.innerText || '').toLowerCase();
+        const className = el.className || '';
+        return text.includes('unwatch') || className.includes('watched') || className.includes('unwatch');
+      }, watchBtn);
+
+      if ((watch && !isWatched) || (!watch && isWatched)) {
+        await watchBtn.click();
+        await page.evaluate(() => new Promise(r => setTimeout(r, 600)));
+      }
+    }
+
+    authSession.cookies = await page.cookies();
+    if (browser) await browser.close();
+
+    return res.json({ success: true, url, watch });
+  } catch (err) {
+    console.error('[REMOTE WATCH ERROR]', err.message);
+    if (browser) await browser.close();
+    return res.json({ success: true, url, watch, error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
