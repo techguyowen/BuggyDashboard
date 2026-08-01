@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3001;
 const CACHE_FILE_PATH = path.join(__dirname, 'catalog_cache.json');
 let lastCatalogUpdateTime = Date.now();
 
+app.set('trust proxy', 1);
 app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -654,8 +655,9 @@ app.get('/api/crawler-settings', (req, res) => {
 // Real-Time Server-Sent Events (SSE) Progressive Stream Endpoint
 app.get('/api/stream', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
   sseClients.push(res);
@@ -768,24 +770,70 @@ app.get('/api/calc', (req, res) => {
   });
 });
 
-let authSession = {
-  isLoggedIn: false,
-  email: null,
-  cookies: [],
-  lastSyncTime: null
-};
+const crypto = require('crypto');
+
+// Per-User Multi-User Session Manager
+const userSessionsMap = new Map();
+
+function getUserSession(req, res) {
+  let sessionId = req.headers['x-session-id'];
+  if (!sessionId && req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|;\s*)tl_session_id=([^;]+)/);
+    if (match) sessionId = match[1];
+  }
+
+  if (!sessionId) {
+    sessionId = 'sess_' + crypto.randomBytes(16).toString('hex');
+  }
+
+  if (res && !res.headersSent) {
+    res.setHeader('Set-Cookie', `tl_session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+  }
+
+  if (!userSessionsMap.has(sessionId)) {
+    userSessionsMap.set(sessionId, {
+      id: sessionId,
+      isLoggedIn: false,
+      email: null,
+      cookies: [],
+      lastSyncTime: null,
+      lastAccessedAt: Date.now()
+    });
+  }
+
+  const session = userSessionsMap.get(sessionId);
+  session.lastAccessedAt = Date.now();
+  return session;
+}
+
+// Garbage collect inactive user sessions (every hour)
+setInterval(() => {
+  const now = Date.now();
+  const maxAgeMs = 7 * 24 * 3600 * 1000;
+  for (const [id, session] of userSessionsMap.entries()) {
+    if (session.lastAccessedAt && (now - session.lastAccessedAt > maxAgeMs)) {
+      userSessionsMap.delete(id);
+    }
+  }
+  if (userSessionsMap.size > 5000) {
+    const keysToEvict = Array.from(userSessionsMap.keys()).slice(0, userSessionsMap.size - 5000);
+    keysToEvict.forEach(k => userSessionsMap.delete(k));
+  }
+}, 3600000);
 
 // Auth Status Endpoint
 app.get('/api/auth/status', (req, res) => {
+  const session = getUserSession(req, res);
   res.json({
-    isLoggedIn: authSession.isLoggedIn,
-    email: authSession.email,
-    lastSyncTime: authSession.lastSyncTime
+    isLoggedIn: session.isLoggedIn,
+    email: session.email,
+    lastSyncTime: session.lastSyncTime
   });
 });
 
 // Auth Login Endpoint (Headless Puppeteer Login)
 app.post('/api/auth/login', async (req, res) => {
+  const session = getUserSession(req, res);
   const { username, password } = req.body || {};
 
   if (!username || !password) {
@@ -794,7 +842,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   let browser = null;
   try {
-    console.log(`[AUTH] Headless authentication attempt for user: ${username}`);
+    console.log(`[AUTH] Headless authentication attempt for user: ${username} (session: ${session.id})`);
     browser = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       headless: true,
@@ -832,10 +880,10 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const cookies = await page.cookies();
-    authSession.isLoggedIn = true;
-    authSession.email = username;
-    authSession.cookies = cookies;
-    authSession.lastSyncTime = new Date().toISOString();
+    session.isLoggedIn = true;
+    session.email = username;
+    session.cookies = cookies;
+    session.lastSyncTime = new Date().toISOString();
 
     if (browser) await browser.close();
 
@@ -857,18 +905,18 @@ app.post('/api/auth/login', async (req, res) => {
 
 // Auth Logout Endpoint
 app.post('/api/auth/logout', (req, res) => {
-  authSession = {
-    isLoggedIn: false,
-    email: null,
-    cookies: [],
-    lastSyncTime: null
-  };
+  const session = getUserSession(req, res);
+  session.isLoggedIn = false;
+  session.email = null;
+  session.cookies = [];
+  session.lastSyncTime = null;
   res.json({ success: true, message: 'Logged out successfully.' });
 });
 
 // Watchlist Sync Endpoint
 app.post('/api/watchlist/sync', async (req, res) => {
-  if (!authSession.isLoggedIn) {
+  const session = getUserSession(req, res);
+  if (!session.isLoggedIn) {
     return res.status(401).json({ success: false, error: 'Unauthorized. Please connect your account.' });
   }
 
@@ -876,7 +924,7 @@ app.post('/api/watchlist/sync', async (req, res) => {
   let browser = null;
 
   try {
-    console.log(`[WATCHLIST SYNC] Starting sync for user: ${authSession.email}`);
+    console.log(`[WATCHLIST SYNC] Starting sync for user: ${session.email} (session: ${session.id})`);
     browser = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       headless: true,
@@ -886,8 +934,8 @@ app.post('/api/watchlist/sync', async (req, res) => {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
 
-    if (authSession.cookies && authSession.cookies.length > 0) {
-      await page.setCookie(...authSession.cookies);
+    if (session.cookies && session.cookies.length > 0) {
+      await page.setCookie(...session.cookies);
     }
 
     // Navigate to watched-lots page
@@ -895,8 +943,8 @@ app.post('/api/watchlist/sync', async (req, res) => {
 
     const pageUrl = page.url();
     if (pageUrl.includes('/login')) {
-      authSession.isLoggedIn = false;
-      authSession.cookies = [];
+      session.isLoggedIn = false;
+      session.cookies = [];
       if (browser) await browser.close();
       return res.status(401).json({ success: false, error: 'Session expired. Please reconnect your account.' });
     }
@@ -1070,8 +1118,8 @@ app.post('/api/watchlist/sync', async (req, res) => {
     }
 
     // Refresh saved session cookies
-    authSession.cookies = await page.cookies();
-    authSession.lastSyncTime = new Date().toISOString();
+    session.cookies = await page.cookies();
+    session.lastSyncTime = new Date().toISOString();
 
     if (browser) await browser.close();
 
@@ -1126,12 +1174,13 @@ app.post(['/api/watchlist/clear-past', '/api/catalog/clear-past'], (req, res) =>
 
 // Watchlist Remote Watch Toggle Endpoint
 app.post('/api/watchlist/remote-watch', async (req, res) => {
+  const session = getUserSession(req, res);
   const { url, watch } = req.body || {};
   if (!url) {
     return res.status(400).json({ success: false, error: 'Item URL is required.' });
   }
 
-  if (!authSession.isLoggedIn) {
+  if (!session.isLoggedIn) {
     return res.json({ success: true, url, watch, note: 'Saved locally (Account not connected).' });
   }
 
@@ -1146,8 +1195,8 @@ app.post('/api/watchlist/remote-watch', async (req, res) => {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
 
-    if (authSession.cookies && authSession.cookies.length > 0) {
-      await page.setCookie(...authSession.cookies);
+    if (session.cookies && session.cookies.length > 0) {
+      await page.setCookie(...session.cookies);
     }
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -1166,7 +1215,7 @@ app.post('/api/watchlist/remote-watch', async (req, res) => {
       }
     }
 
-    authSession.cookies = await page.cookies();
+    session.cookies = await page.cookies();
     if (browser) await browser.close();
 
     return res.json({ success: true, url, watch });
