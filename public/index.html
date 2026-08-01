@@ -484,6 +484,26 @@
       color: var(--accent-gold);
     }
 
+    /* Native File Input Selector Button Styling */
+    input[type="file"]::file-selector-button {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #ffffff;
+      border: none;
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 0.75rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+
+    input[type="file"]::file-selector-button:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
+    }
+
     /* FEE BREAKDOWN CARD */
     .fee-card {
       background: rgba(30, 41, 59, 0.5);
@@ -1382,10 +1402,10 @@
       <div class="filter-group">
         <div class="filter-label">
           <span>Max Out-Of-Pocket</span>
-          <span id="budgetValue" class="slider-value">$600</span>
+          <span id="budgetValue" class="slider-value">Any Price</span>
         </div>
         <div class="budget-slider-container">
-          <input type="range" id="budgetRange" min="10" max="600" step="10" value="600" oninput="updateBudgetLabel(this.value)">
+          <input type="range" id="budgetRange" min="5" max="500" step="5" value="500" oninput="updateBudgetLabel(this.value)">
         </div>
       </div>
 
@@ -2634,7 +2654,15 @@
     }
 
     function updateBudgetLabel(val) {
-      document.getElementById('budgetValue').innerText = `$${val}`;
+      const numericVal = parseFloat(val);
+      const label = document.getElementById('budgetValue');
+      if (label) {
+        if (numericVal >= 500) {
+          label.innerText = 'Any Price';
+        } else {
+          label.innerText = `$${numericVal}`;
+        }
+      }
       applyFilters();
     }
 
@@ -2657,8 +2685,8 @@
       document.getElementById('locationSelect').value = 'All';
       document.getElementById('categorySelect').value = 'All';
       if (document.getElementById('timeFilterSelect')) document.getElementById('timeFilterSelect').value = 'All';
-      document.getElementById('budgetRange').value = 600;
-      document.getElementById('budgetValue').innerText = '$600';
+      document.getElementById('budgetRange').value = 500;
+      document.getElementById('budgetValue').innerText = 'Any Price';
       document.getElementById('sortSelect').value = 'watchlist';
       filterSavedOnly = false;
       document.getElementById('savedOnlyBtn').classList.remove('active');
@@ -3119,7 +3147,9 @@
         }
 
         if (category !== 'All' && item.category !== category) return false;
-        if (fin.totalNum > maxBudget) return false;
+
+        const itemTotal = fin ? parseFloat(fin.totalCostNum || fin.totalNum || fin.total || fin.totalCost || 0) : 0;
+        if (maxBudget < 500 && itemTotal > maxBudget) return false;
 
         if (timeFilter !== 'All') {
           const info = formatTimeRemaining(item.endsAt, item.closingDate);
