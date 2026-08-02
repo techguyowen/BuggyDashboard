@@ -1,5 +1,5 @@
 # Buggy Busters Live Auction Tracker & Out-of-Pocket Calculator
-### GitHub Repository: `techguyowen/TL-Dashboard`
+### GitHub Repository: `techguyowen/buggy-dashboard`
 
 A real-time auction tracking dashboard built with Node.js, Express, and Puppeteer. Features live countdown timers, financial fee calculations (15% Buyer Premium + 7.25% Tax + 3% Credit Card fee), custom keyword watchlists, exclude keyword filters, and headless auction account synchronization.
 
@@ -7,7 +7,7 @@ A real-time auction tracking dashboard built with Node.js, Express, and Puppetee
 
 ## ⚡ Option 1: Deploy with Docker Compose (Prebuilt GitHub Image)
 
-GitHub Actions automatically builds and publishes the container image to GitHub Container Registry (`ghcr.io/techguyowen/tl-dashboard:latest`). Anyone with Docker installed can launch the dashboard in seconds without needing to clone or compile code.
+GitHub Actions automatically builds and publishes the container image to GitHub Container Registry (`ghcr.io/techguyowen/buggy-dashboard:latest`). Anyone with Docker installed can launch the dashboard in seconds without needing to clone or compile code.
 
 ### Step 1: Save `docker-compose.yml` on your server
 
@@ -16,7 +16,7 @@ version: '3.8'
 
 services:
   buggy-auction-dashboard:
-    image: ghcr.io/techguyowen/tl-dashboard:latest
+    image: ghcr.io/techguyowen/buggy-dashboard:latest
     container_name: buggy-auction-dashboard
     restart: unless-stopped
     ports:
@@ -52,7 +52,7 @@ docker run -d \
   -p 3001:3001 \
   -v ./catalog_cache.json:/app/catalog_cache.json \
   --restart unless-stopped \
-  ghcr.io/techguyowen/tl-dashboard:latest
+  ghcr.io/techguyowen/buggy-dashboard:latest
 ```
 
 ---
@@ -67,7 +67,7 @@ version: '3.8'
 services:
   buggy-auction-dashboard:
     build:
-      context: https://github.com/techguyowen/TL-Dashboard.git#main
+      context: https://github.com/techguyowen/buggy-dashboard.git#main
       dockerfile: Dockerfile
     container_name: buggy-auction-dashboard
     restart: unless-stopped
@@ -96,8 +96,8 @@ docker compose up -d --build
 
 ```bash
 # Clone repository
-git clone https://github.com/techguyowen/TL-Dashboard.git
-cd TL-Dashboard
+git clone https://github.com/techguyowen/buggy-dashboard.git
+cd buggy-dashboard
 
 # Install & Run
 npm install
