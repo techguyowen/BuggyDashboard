@@ -1,4 +1,4 @@
-# Triangle Liquidators Live Auction Tracker & Out-of-Pocket Calculator
+# Buggy Busters Live Auction Tracker & Out-of-Pocket Calculator
 ### GitHub Repository: `techguyowen/TL-Dashboard`
 
 A real-time auction tracking dashboard built with Node.js, Express, and Puppeteer. Features live countdown timers, financial fee calculations (15% Buyer Premium + 7.25% Tax + 3% Credit Card fee), custom keyword watchlists, exclude keyword filters, and headless auction account synchronization.
@@ -15,17 +15,19 @@ GitHub Actions automatically builds and publishes the container image to GitHub 
 version: '3.8'
 
 services:
-  tl-auction-dashboard:
+  buggy-auction-dashboard:
     image: ghcr.io/techguyowen/tl-dashboard:latest
-    container_name: tl-auction-dashboard
+    container_name: buggy-auction-dashboard
     restart: unless-stopped
     ports:
       - "3001:3001"
+    volumes:
+      - ./catalog_cache.json:/app/catalog_cache.json
     environment:
       - PORT=3001
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/progress"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/progress"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -46,8 +48,9 @@ Access the dashboard at `http://localhost:3001`.
 
 ```bash
 docker run -d \
-  --name tl-auction-dashboard \
+  --name buggy-auction-dashboard \
   -p 3001:3001 \
+  -v ./catalog_cache.json:/app/catalog_cache.json \
   --restart unless-stopped \
   ghcr.io/techguyowen/tl-dashboard:latest
 ```
@@ -62,19 +65,21 @@ If you want Docker to build the image locally from GitHub source code instead of
 version: '3.8'
 
 services:
-  tl-auction-dashboard:
+  buggy-auction-dashboard:
     build:
       context: https://github.com/techguyowen/TL-Dashboard.git#main
       dockerfile: Dockerfile
-    container_name: tl-auction-dashboard
+    container_name: buggy-auction-dashboard
     restart: unless-stopped
     ports:
       - "3001:3001"
+    volumes:
+      - ./catalog_cache.json:/app/catalog_cache.json
     environment:
       - PORT=3001
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/progress"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/progress"]
       interval: 30s
       timeout: 10s
       retries: 3

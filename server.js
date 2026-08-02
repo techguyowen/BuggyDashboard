@@ -61,10 +61,14 @@ function loadDiskCache() {
       const raw = fs.readFileSync(CACHE_FILE_PATH, 'utf8');
       const savedItems = JSON.parse(raw);
       if (Array.isArray(savedItems) && savedItems.length > 0) {
+        const initialCount = savedItems.length;
         savedItems.forEach(item => {
           masterCatalogMap.set(item.id || item.url, item);
         });
-        pruneExpiredCatalogCache();
+        const prunedCount = pruneExpiredCatalogCache();
+        if (prunedCount > 0 || masterCatalogMap.size < initialCount) {
+          saveDiskCache();
+        }
         lastCatalogUpdateTime = Date.now();
         scraperProgress.totalIndexed = masterCatalogMap.size;
         console.log(`[DISK CACHE] Loaded ${masterCatalogMap.size} auction items from ./catalog_cache.json in <0.05s!`);
@@ -108,120 +112,14 @@ function broadcastEvent(type, extraData = {}) {
   });
 }
 
-// Seed initial items with dynamic endsAt ISO timestamps
-const now = new Date();
-const todayStr = now.toISOString().split('T')[0];
-const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-const FALLBACK_ITEMS = [
-  {
-    id: "tl-101",
-    title: "18V Cordless 10-Tool Combo Kit with 2Ah Battery, 4Ah Battery & Charger",
-    currentBid: 52.00,
-    retailPrice: 478.00,
-    brand: "RYOBI",
-    condition: "Condition: B - Open Box",
-    location: "Raleigh",
-    address: "1101 Transport Dr, Raleigh, NC 27603",
-    url: "https://auction.triangleliquidators.com/lots/view/1-D5PTSS/450-nintendo-switch-2-console-item-18131241",
-    image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=600&q=80",
-    category: "Tools & Equipment",
-    auctionName: "Raleigh Live Auction Today",
-    closingDate: todayStr,
-    endsAt: new Date(now.getTime() + 3 * 3600 * 1000 + 45 * 60 * 1000).toISOString() // +3h 45m
-  },
-  {
-    id: "tl-102",
-    title: "Milwaukee PACKOUT Modular Tool Box System Set (3-Piece)",
-    currentBid: 85.00,
-    retailPrice: 299.00,
-    brand: "Milwaukee",
-    condition: "Condition: A - Appears New",
-    location: "Raleigh",
-    address: "1101 Transport Dr, Raleigh, NC 27603",
-    url: "https://auction.triangleliquidators.com/lots/view/1-D5PTT4/899-cyberpowerpc-gamer-master-gaming-desktop-amd-ryzen-5-7600-16gb-ddr5-1tb-ssd-item-18131635",
-    image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80",
-    category: "Tools & Equipment",
-    auctionName: "Raleigh Live Auction Today",
-    closingDate: todayStr,
-    endsAt: new Date(now.getTime() + 1 * 3600 * 1000 + 20 * 60 * 1000).toISOString() // +1h 20m
-  },
-  {
-    id: "tl-103",
-    title: "Concord Electric Bicycle 350W Rear Hub 36V Lithium Battery",
-    currentBid: 52.00,
-    retailPrice: 478.00,
-    brand: "Concord Bikes",
-    condition: "Condition: C - Used, missing parts/batteries. Potentially damaged - As Is",
-    location: "Raleigh",
-    address: "1101 Transport Dr, Raleigh, NC 27603",
-    url: "https://auction.triangleliquidators.com/lots/view/1-D5PTR6/699-costway-20k-2-zone-mini-split-acheating-heat-pump-only-208230v-item-18126101",
-    image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=600&q=80",
-    category: "General Merchandise",
-    auctionName: "Raleigh Tuesday Auction",
-    closingDate: tomorrowStr,
-    endsAt: new Date(now.getTime() + 27 * 3600 * 1000).toISOString() // Tomorrow
-  },
-  {
-    id: "tl-104",
-    title: "Craftsman 3000 PSI 2.3 GPM Gas Pressure Washer Briggs & Stratton",
-    currentBid: 110.00,
-    retailPrice: 389.00,
-    brand: "Craftsman",
-    condition: "Condition: D - Damaged / Untested As-Is",
-    location: "Raleigh",
-    address: "1101 Transport Dr, Raleigh, NC 27603",
-    url: "https://auction.triangleliquidators.com/lots/view/1-D5PTR8/680-22-cu-ft-front-load-washer-24-in-white-item-18127075",
-    image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=80",
-    category: "Lawn & Garden",
-    auctionName: "Raleigh Live Auction Today",
-    closingDate: todayStr,
-    endsAt: new Date(now.getTime() + 5 * 3600 * 1000 + 10 * 60 * 1000).toISOString() // +5h 10m
-  },
-  {
-    id: "tl-105",
-    title: "Outdoor Patio 4-Piece Wicker Conversation Furniture Set with Cushions",
-    currentBid: 145.00,
-    retailPrice: 599.00,
-    brand: "Patio Living",
-    condition: "Condition: Shelf Pull - Customer Return",
-    location: "Raleigh",
-    address: "1101 Transport Dr, Raleigh, NC 27603",
-    url: "https://auction.triangleliquidators.com/lots/view/1-D5PTWU/1169-12000-cfm-evaporative-cooler-evap-swamp-cooler-air-conditioner-3200-sq-ft-for-outdoor-patio-shop-yard-factory-item-18138091",
-    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
-    category: "Furniture & Patio",
-    auctionName: "Raleigh Live Auction Today",
-    closingDate: todayStr,
-    endsAt: new Date(now.getTime() + 6 * 3600 * 1000).toISOString() // +6h
-  },
-  {
-    id: "tl-106",
-    title: "Honda EU2200i 2200-Watt Super Quiet Inverter Generator",
-    currentBid: 260.00,
-    retailPrice: 1099.00,
-    brand: "Honda",
-    condition: "Condition: B - Open Box",
-    location: "SC Transfer",
-    address: "Williamston / Anderson, SC Transfer Depot",
-    url: "https://auction.triangleliquidators.com/auctions/1-D5PS9B/anderson-tuesday-07282026",
-    image: "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?auto=format&fit=crop&w=600&q=80",
-    category: "Generators & Power",
-    auctionName: "Anderson Transfer Auction",
-    closingDate: tomorrowStr,
-    endsAt: new Date(now.getTime() + 30 * 3600 * 1000).toISOString() // Tomorrow
-  }
-];
-
-FALLBACK_ITEMS.forEach(i => {
-  masterCatalogMap.set(i.id, { ...i, financials: calculateFinancials(i.currentBid, i.retailPrice) });
-});
+// Legacy FALLBACK_ITEMS decommissioned - master catalog loaded directly from disk cache
+const FALLBACK_ITEMS = [];
 scraperProgress.totalIndexed = masterCatalogMap.size;
 
 /**
  * Fast Fast-Streaming Multi-Page Crawler with Progressive Real-Time UI Broadcasting
  */
-async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog = 10) {
+async function crawlDeepAuctionPages(maxCatalogsToScan = 10, maxPagesPerCatalog = 60) {
   if (isBackgroundScraping) return;
   isBackgroundScraping = true;
   scraperProgress.isScraping = true;
@@ -267,24 +165,53 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
 
     let page = await createOptimizedPage();
 
-    await page.goto('https://auction.triangleliquidators.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await new Promise(r => setTimeout(r, 1500));
+    await page.goto('https://auction.buggybusters.com/affiliate/morganton-north-carolina-4/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await new Promise(r => setTimeout(r, 2500));
 
-    // Get active auction catalog URLs across days
-    const activeAuctions = await page.evaluate(() => {
-      const anchors = Array.from(document.querySelectorAll('a[href*="/auctions/1-"]'));
+    // Discover live Morganton auction catalog galleries (/bidgallery/)
+    // Filter out closed/past auctions by checking the date in the URL slug
+    const todayStr = new Date().toISOString().split('T')[0]; // e.g. "2026-08-02"
+    const allAuctions = await page.evaluate(() => {
+      const anchors = Array.from(document.querySelectorAll('a[href*="/bidgallery/"]'));
       const found = [];
       anchors.forEach(a => {
-        if (a.href && !found.some(f => f.href === a.href) && !a.href.includes('/past')) {
-          const text = a.innerText.trim();
-          let location = 'Raleigh';
-          if (text.toLowerCase().includes('anderson') || a.href.toLowerCase().includes('anderson')) {
-            location = 'SC Transfer';
+        if (a.href && !found.some(f => f.href === a.href)) {
+          const urlParts = a.href.split('/auction/');
+          let catalogName = 'Morganton Auction';
+          let slug = '';
+          if (urlParts[1]) {
+            slug = urlParts[1].split('/')[0] || '';
+            catalogName = slug
+              .replace(/-\d+$/, '')
+              .replace(/-/g, ' ')
+              .replace(/\b\w/g, c => c.toUpperCase())
+              .trim() || 'Morganton Auction';
           }
-          found.push({ name: text, href: a.href, location });
+          found.push({ name: catalogName, href: a.href, location: 'Morganton', slug });
         }
       });
       return found;
+    });
+
+    // Filter out auctions whose ending date is in the past
+    const monthMap = { january:1, february:2, march:3, april:4, may:5, june:6, july:7, august:8, september:9, october:10, november:11, december:12 };
+    const activeAuctions = allAuctions.filter(auc => {
+      const s = auc.slug.toLowerCase();
+      // Try to extract date from slug like "ending-monday-august-3rd-2026"
+      const dateMatch = s.match(/ending-\w+-(\w+)-(\d+)\w*-(\d{4})/);
+      if (dateMatch) {
+        const month = monthMap[dateMatch[1]];
+        const day = parseInt(dateMatch[2], 10);
+        const year = parseInt(dateMatch[3], 10);
+        if (month && day && year) {
+          const aucDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          if (aucDate < todayStr) {
+            console.log(`[DEEP CRAWLER] Skipping closed auction: ${auc.name} (ended ${aucDate})`);
+            return false;
+          }
+        }
+      }
+      return true;
     });
 
     scraperProgress.scrapedDaysCount = activeAuctions.length;
@@ -302,35 +229,71 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
         scraperProgress.currentAuction = auc.name;
         scraperProgress.status = `Progressively Ingesting ${auc.name} (${auc.location}) Page ${pageNum}/${maxPagesPerCatalog}...`;
 
-        const pageUrl = `${auc.href}?limit=96&perPage=96&page=${pageNum}`;
-        console.log(`[DEEP CRAWLER] ${scraperProgress.status}`);
-        broadcastEvent('progress_update');
-
         try {
           if (!page || page.isClosed()) {
             page = await createOptimizedPage();
           }
 
-          await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 18000 });
-          await new Promise(r => setTimeout(r, 1200));
+          if (pageNum === 1) {
+            await page.goto(auc.href, { waitUntil: 'domcontentloaded', timeout: 18000 });
+            await new Promise(r => setTimeout(r, 1500));
+          } else {
+            const navigated = await page.evaluate((targetPage) => {
+              const anchors = Array.from(document.querySelectorAll("ul.pagination li a, .pagination a, a"));
+              const btn = anchors.find(a => a.innerText.trim() === String(targetPage));
+              if (btn) {
+                btn.click();
+                return true;
+              }
+              const nextBtn = anchors.find(a => a.innerText.trim().toLowerCase() === "next");
+              if (nextBtn) {
+                nextBtn.click();
+                return true;
+              }
+              try {
+                const el = document.querySelector("[ng-controller]") || document.querySelector("ul.pagination") || document.body;
+                if (window.angular && el) {
+                  const scope = window.angular.element(el).scope();
+                  if (scope && typeof scope.setPage === "function") {
+                    scope.$apply(() => scope.setPage(targetPage));
+                    return true;
+                  }
+                }
+              } catch (e) {}
+              return false;
+            }, pageNum);
+
+            if (!navigated) {
+              console.log(`[DEEP CRAWLER] Reached end of pagination for ${auc.name} at page ${pageNum - 1}.`);
+              break;
+            }
+
+            await new Promise(r => setTimeout(r, 1500));
+          }
 
           const pageItems = await page.evaluate((loc, aucName, pNum) => {
-            const lotLinks = Array.from(document.querySelectorAll('a[href*="/lots/view/"]'));
+            const cards = Array.from(document.querySelectorAll('div.aucbox'));
             const items = [];
             const seen = new Set();
 
-            lotLinks.forEach(a => {
-              if (seen.has(a.href)) return;
-              seen.add(a.href);
+            const processCardOrLink = (element, isCard) => {
+              const linkEl = isCard
+                ? (element.querySelector('a[href*="/item/"]') || element.querySelector('a.pic') || element.querySelector('a'))
+                : element;
+              if (!linkEl || !linkEl.href) return;
+              if (seen.has(linkEl.href)) return;
+              seen.add(linkEl.href);
 
-              let parent = a.parentElement;
-              for (let i = 0; i < 5; i++) {
-                if (parent && parent.innerText && parent.innerText.length > 20) break;
-                if (parent && parent.parentElement) parent = parent.parentElement;
+              let parent = isCard ? element : element.parentElement;
+              if (!isCard) {
+                for (let i = 0; i < 5; i++) {
+                  if (parent && parent.innerText && parent.innerText.length > 20) break;
+                  if (parent && parent.parentElement) parent = parent.parentElement;
+                }
               }
 
               const text = parent ? parent.innerText : '';
-              const img = parent ? parent.querySelector('img') : null;
+              const img = parent ? parent.querySelector('a.pic img, img') : null;
 
               // Condition A-E & Text Parser
               let condition = 'Condition: Open Box';
@@ -363,49 +326,62 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
               if (bidMatch) currentBid = parseFloat(bidMatch[1].replace(',', ''));
               else currentBid = Math.floor(Math.random() * 45) + 5;
 
-              const hrefParts = a.href.split('/');
-              const slug = hrefParts[hrefParts.length - 1] || '';
-              let titleClean = decodeURIComponent(slug)
-                .replace(/-/g, ' ')
-                .replace(/^\$\d+\s*/, '')
-                .replace(/^item \d+/i, '')
-                .trim();
+              const titleEl = isCard ? (element.querySelector('.trunc-title b, b[ng-bind-html*="title"]') || linkEl) : linkEl;
+              let titleClean = (titleEl ? titleEl.innerText : '').trim();
 
-              if (!titleClean || titleClean.length < 3) titleClean = a.innerText.trim();
+              if (!titleClean || titleClean.length < 3) {
+                const hrefParts = linkEl.href.split('/');
+                const slug = hrefParts[hrefParts.length - 1] || hrefParts[hrefParts.length - 2] || '';
+                titleClean = decodeURIComponent(slug)
+                  .replace(/-/g, ' ')
+                  .replace(/^\$\d+\s*/, '')
+                  .replace(/^item \d+/i, '')
+                  .trim();
+              }
+
+              if (!titleClean || titleClean.length < 3) titleClean = linkEl.innerText.trim();
 
               let category = 'General Merchandise';
-              const tLower = titleClean.toLowerCase();
+              const tLower = (titleClean + ' ' + text).toLowerCase();
 
-              if (tLower.includes('tool') || tLower.includes('drill') || tLower.includes('saw') || tLower.includes('dewalt') || tLower.includes('milwaukee') || tLower.includes('craftsman') || tLower.includes('ryobi') || tLower.includes('impact') || tLower.includes('wrench') || tLower.includes('kobalt') || tLower.includes('socket') || tLower.includes('compressor')) {
+              if (/\b(shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|heel|heels|pump|pumps|dress|dresses|gown|gowns|shirt|shirts|pant|pants|jean|jeans|jacket|jackets|coat|coats|hoodie|hoodies|sweater|sweaters|sock|socks|hat|hats|bag|bags|purse|purses|backpack|apparel|clothing|womens|mens|size)\b/i.test(tLower)) {
+                category = 'Apparel, Shoes & Accessories';
+              } else if (/\b(massager|shaver|razor|skincare|lotion|serum|makeup|cosmetic|hair|dryer|straightener|perfume|cologne|vitamin|supplement|toothbrush|oral|health|beauty)\b/i.test(tLower)) {
+                category = 'Health, Beauty & Skincare';
+              } else if (/\b(stroller|car seat|baby|toddler|nursery|toy|toys|lego|doll|action figure|playpen|crib|puzzle|board game|kids)\b/i.test(tLower)) {
+                category = 'Toys, Baby & Kids';
+              } else if (/\b(vanity|towel|towels|sheet|sheets|pillow|pillows|blanket|blankets|comforter|duvet|mattress pad|shower|curtain|curtains|bath mat|rug|rugs|linens)\b/i.test(tLower)) {
+                category = 'Bedding, Bath & Linens';
+              } else if (/\b(tool|tools|drill|drills|saw|saws|dewalt|milwaukee|craftsman|ryobi|impact|wrench|wrenches|kobalt|socket|sockets|compressor|sander|router|welder)\b/i.test(tLower)) {
                 category = 'Tools & Equipment';
-              } else if (tLower.includes('tv') || tLower.includes('nintendo') || tLower.includes('switch') || tLower.includes('gaming') || tLower.includes('playstation') || tLower.includes('xbox') || tLower.includes('laptop') || tLower.includes('desktop') || tLower.includes('tablet') || tLower.includes('ipad') || tLower.includes('monitor') || tLower.includes('headphone') || tLower.includes('audio') || tLower.includes('camera') || tLower.includes('speaker')) {
+              } else if (/\b(tv|tvs|nintendo|switch|gaming|playstation|xbox|laptop|laptops|desktop|tablet|tablets|ipad|monitor|monitors|headphone|headphones|audio|camera|speaker|speakers|phone|earbud|earbuds|wireless)\b/i.test(tLower)) {
                 category = 'Electronics & Gaming';
-              } else if ((tLower.includes('washer') && !tLower.includes('pressure washer')) || tLower.includes('dryer') || tLower.includes('refrigerator') || tLower.includes('fridge') || tLower.includes('freezer') || tLower.includes('dishwasher') || tLower.includes('mini split') || tLower.includes('air conditioner') || tLower.includes('water heater')) {
-                category = 'Major Appliances';
-              } else if (tLower.includes('patio') || tLower.includes('trimmer') || tLower.includes('lawn') || tLower.includes('mower') || tLower.includes('pressure washer') || tLower.includes('hose') || tLower.includes('tiller') || tLower.includes('chainsaw') || tLower.includes('grill') || tLower.includes('smoker') || tLower.includes('traeger')) {
-                category = 'Lawn & Garden';
-              } else if (tLower.includes('ninja') || tLower.includes('kitchen') || tLower.includes('cooker') || tLower.includes('fryer') || tLower.includes('blender') || tLower.includes('instant pot') || tLower.includes('coffee') || tLower.includes('espresso') || tLower.includes('toaster') || tLower.includes('cookware') || tLower.includes('ice maker')) {
+              } else if ((/\b(washer|dryer|refrigerator|fridge|freezer|dishwasher|mini split|air conditioner|water heater|range|oven|microwave)\b/i.test(tLower)) && !tLower.includes('pressure washer')) {
+                category = 'Major Appliances & HVAC';
+              } else if (/\b(ninja|kitchen|cooker|fryer|blender|instant pot|coffee|espresso|toaster|cookware|ice maker|pot|pots|pan|pans|knife|dish)\b/i.test(tLower)) {
                 category = 'Kitchen & Dining';
-              } else if (tLower.includes('sofa') || tLower.includes('couch') || tLower.includes('bed') || tLower.includes('mattress') || tLower.includes('desk') || tLower.includes('chair') || tLower.includes('table') || tLower.includes('cabinet') || tLower.includes('shelf') || tLower.includes('rug') || tLower.includes('recliner') || tLower.includes('furniture') || tLower.includes('ottoman')) {
+              } else if (/\b(sofa|couch|bed|mattress|desk|chair|table|cabinet|shelf|recliner|furniture|ottoman|lamp|lamps|sconce|chandelier|mirror|wall art|decor)\b/i.test(tLower)) {
                 category = 'Furniture & Home Decor';
-              } else if (tLower.includes('generator') || tLower.includes('power') || tLower.includes('inverter') || tLower.includes('solar') || tLower.includes('eco-flow') || tLower.includes('jackery') || tLower.includes('watt')) {
+              } else if (/\b(patio|trimmer|lawn|mower|pressure washer|hose|tiller|chainsaw|grill|smoker|traeger|gazebo|umbrella|planter)\b/i.test(tLower)) {
+                category = 'Lawn & Garden';
+              } else if (/\b(generator|power station|inverter|solar|eco-flow|jackery|watt|battery)\b/i.test(tLower)) {
                 category = 'Generators & Solar Power';
-              } else if (tLower.includes('tire') || tLower.includes('jack') || tLower.includes('battery charger') || tLower.includes('jump starter') || tLower.includes('winch') || tLower.includes('automotive') || tLower.includes('trailer') || tLower.includes('hitch')) {
+              } else if (/\b(tire|tires|jack|obd2|scanner|battery charger|jump starter|winch|automotive|trailer|hitch|car cover)\b/i.test(tLower)) {
                 category = 'Automotive & Marine';
-              } else if (tLower.includes('bike') || tLower.includes('bicycle') || tLower.includes('scooter') || tLower.includes('e-bike') || tLower.includes('treadmill') || tLower.includes('exercise') || tLower.includes('fitness') || tLower.includes('kayak') || tLower.includes('tent') || tLower.includes('camping') || tLower.includes('cooler') || tLower.includes('yeti')) {
+              } else if (/\b(bike|bicycle|scooter|e-bike|treadmill|exercise|fitness|kayak|tent|camping|cooler|yeti|golf|fishing|dumbbell)\b/i.test(tLower)) {
                 category = 'Sports, Fitness & Outdoors';
-              } else if (tLower.includes('pump') || tLower.includes('sink') || tLower.includes('faucet') || tLower.includes('toilet') || tLower.includes('shower') || tLower.includes('plumbing') || tLower.includes('hardware') || tLower.includes('flooring') || tLower.includes('tile')) {
+              } else if (/\b(pump|sink|faucet|toilet|plumbing|hardware|flooring|tile|pipe|valve)\b/i.test(tLower)) {
                 category = 'Hardware & Plumbing';
-              } else if (tLower.includes('pallet') || tLower.includes('bulk') || tLower.includes('wholesale') || tLower.includes('mystery box') || tLower.includes('liquidation')) {
-                category = 'Pallets & Bulk Merchandise';
+              } else if (/\b(pallet|bulk|wholesale|mystery box|liquidation)\b/i.test(tLower)) {
+                category = 'Pallets & Bulk Lots';
               }
 
               let closingDate = new Date().toISOString().split('T')[0];
               let endsAtISO = null;
               let closingTimeStr = null;
 
-              // 1. Try extracting live countdown timer text from lot card DOM
-              const timerMatch = text.match(/\b(?:(\d+)\s*d\s*)?(?:(\d+)\s*h\s*)?(\d+)\s*m(?:\s*(\d+)\s*s)?\b/i);
+              // 1. Try extracting live countdown timer text from lot card DOM (supports uppercase & commas: 6H, 44M, 14S)
+              const timerMatch = text.match(/\b(?:(\d+)\s*D[,\s]*)?(?:(\d+)\s*H[,\s]*)?(\d+)\s*M(?:[,\s]*(\d+)\s*S)?\b/i);
               if (timerMatch) {
                 const hasD = timerMatch[1] !== undefined;
                 const hasH = timerMatch[2] !== undefined;
@@ -429,7 +405,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
               }
 
               // 2. Try extracting date MM/DD/YYYY from auction name
-              const dateMatch = aucName.match(/(\d{2})[\/-]?(\d{2})[\/-]?(\d{4})/) || a.href.match(/(\d{2})(\d{2})(\d{4})/);
+              const dateMatch = aucName.match(/(\d{2})[\/-]?(\d{2})[\/-]?(\d{4})/) || linkEl.href.match(/(\d{2})(\d{2})(\d{4})/);
               if (dateMatch) {
                 const m = dateMatch[1];
                 const d = dateMatch[2];
@@ -452,17 +428,24 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
                 endsAtISO = fallbackDate.toISOString();
               }
 
+              // Keep the full working item URL from the DOM as-is
+              // e.g. https://auction.buggybusters.com/auction/<auction-slug>/item/<item-slug>-<id>/
+              const finalItemUrl = linkEl.href;
+
+              const hrefParts = linkEl.href.split('/');
+              const slug = hrefParts.filter(Boolean).pop() || String(Math.random());
+
               items.push({
                 id: 'scraped-' + slug,
                 title: titleClean,
                 currentBid: currentBid,
                 retailPrice: retailPrice,
                 brand: brand,
-                location: loc,
-                address: loc === 'Raleigh' ? '1101 Transport Dr, Raleigh, NC 27603' : 'Williamston / Anderson, SC Transfer Depot',
+                location: 'Morganton',
+                address: '160 Fiddlers Run Blvd, Morganton, NC 28655 (inside Bin5)',
                 condition: condition,
-                url: a.href,
-                image: img ? img.src : 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+                url: finalItemUrl,
+                image: img ? (img.src || img.getAttribute('lazy-img') || img.getAttribute('data-src')) : 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
                 category: category,
                 auctionName: aucName,
                 closingDate: closingDate,
@@ -470,18 +453,20 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
                 endsAt: endsAtISO,
                 page: pNum
               });
-            });
+            };
+
+            if (cards.length > 0) {
+              cards.forEach(card => processCardOrLink(card, true));
+            } else {
+              const itemLinks = Array.from(document.querySelectorAll('a[href*="/item/"]'));
+              itemLinks.forEach(link => processCardOrLink(link, false));
+            }
 
             return items;
           }, auc.location, auc.name, pageNum);
 
           if (pageItems.length === 0 && pageNum > 2) {
             break;
-          }
-
-          // Automatically purge demo fallback items once live website items are scraped
-          if (pageItems.length > 0) {
-            FALLBACK_ITEMS.forEach(f => masterCatalogMap.delete(f.id));
           }
 
           pageItems.forEach(item => {
@@ -543,29 +528,28 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 6, maxPagesPerCatalog =
  */
 function pruneExpiredCatalogCache() {
   const nowMs = Date.now();
-  const twelveHoursMs = 12 * 60 * 60 * 1000;
   let prunedCount = 0;
 
   for (const [id, item] of masterCatalogMap.entries()) {
-    // 0. Purge any legacy synthetic stub items
-    if (item.auctionName === 'Synced Watchlist Auction' || item.category === 'Watched Items' || id.startsWith('watched-')) {
+    // 0. Purge any legacy items (tl- prefix, unsplash mock images) or synthetic stubs
+    if (id.startsWith('tl-') || (item.image && item.image.includes('unsplash')) || item.auctionName === 'Synced Watchlist Auction' || item.category === 'Watched Items' || id.startsWith('watched-')) {
       masterCatalogMap.delete(id);
       prunedCount++;
       continue;
     }
 
-    // 1. Check if auction ended > 12 hours ago
+    // 1. Immediately remove items from ended/closed auctions
     const endsAtMs = item.endsAt ? new Date(item.endsAt).getTime() : NaN;
-    if (!isNaN(endsAtMs) && (nowMs - endsAtMs > twelveHoursMs)) {
+    if (!isNaN(endsAtMs) && endsAtMs < nowMs) {
       masterCatalogMap.delete(id);
       prunedCount++;
       continue;
     }
 
-    // 2. Fallback check for closingDate older than 12h
+    // 2. Fallback: closingDate is in the past
     if (item.closingDate) {
       const closingMs = new Date(`${item.closingDate}T23:59:59-04:00`).getTime();
-      if (!isNaN(closingMs) && (nowMs - closingMs > twelveHoursMs)) {
+      if (!isNaN(closingMs) && closingMs < nowMs) {
         masterCatalogMap.delete(id);
         prunedCount++;
       }
@@ -586,6 +570,7 @@ function pruneExpiredCatalogCache() {
     console.log(`[CACHE OPTIMIZATION] Pruned ${prunedCount} expired/stale auction items from in-memory catalog cache. Remaining capacity: ${masterCatalogMap.size} items.`);
     scraperProgress.totalIndexed = masterCatalogMap.size;
   }
+  return prunedCount;
 }
 
 let crawlerIntervalSec = 60;
@@ -607,8 +592,9 @@ function updateCrawlerSchedule(intervalSec) {
     console.log(`[DEEP CRAWLER SCHEDULER] Background crawler scheduled to run every ${crawlerIntervalSec} seconds (${ms} ms).`);
     crawlerTimer = setInterval(() => {
       pruneExpiredCatalogCache();
-      crawlDeepAuctionPages(6, 8);
+      crawlDeepAuctionPages(10, 60);
     }, ms);
+    crawlerTimer.unref();
   } else {
     console.log(`[DEEP CRAWLER SCHEDULER] Background crawler automatic loop paused (Manual Sync mode).`);
   }
@@ -620,14 +606,15 @@ function updateCrawlerSchedule(intervalSec) {
 pruneExpiredCatalogCache();
 if (masterCatalogMap.size === 0) {
   console.log('[DEEP CRAWLER] Empty catalog cache detected. Initializing first-run catalog crawl...');
-  crawlDeepAuctionPages(6, 8);
+  crawlDeepAuctionPages(10, 60);
 } else {
   console.log(`[DEEP CRAWLER] Master catalog ready with ${masterCatalogMap.size} cached items.`);
 }
 updateCrawlerSchedule(60);
 
 // Run cache pruning every 30 minutes
-setInterval(pruneExpiredCatalogCache, 30 * 60 * 1000);
+const pruneInterval = setInterval(pruneExpiredCatalogCache, 30 * 60 * 1000);
+pruneInterval.unref();
 
 // API Endpoint for Live Scraper Progress
 app.get('/api/progress', (req, res) => {
@@ -663,11 +650,6 @@ app.get('/api/stream', (req, res) => {
   sseClients.push(res);
 
   let itemsArr = Array.from(masterCatalogMap.values());
-  const hasLiveScraped = itemsArr.some(i => i.id && i.id.startsWith('scraped-'));
-
-  if (hasLiveScraped) {
-    itemsArr = itemsArr.filter(i => !(i.id && i.id.startsWith('tl-10')));
-  }
 
   const sanitizedItems = itemsArr.map(item => ({
     ...item,
@@ -706,6 +688,22 @@ function ensureEndsAt(item) {
   return fallback.toISOString();
 }
 
+// Endpoint to wipe all server-side in-memory & disk catalog cache completely
+app.post('/api/clear-cache', (req, res) => {
+  try {
+    masterCatalogMap.clear();
+    fs.writeFileSync(CACHE_FILE_PATH, '[]', 'utf8');
+    lastCatalogUpdateTime = Date.now();
+    scraperProgress.totalIndexed = 0;
+    broadcastEvent('cache_cleared', { totalIndexed: 0, items: [] });
+    console.log('[CLEAR CACHE] Wiped master catalog map and disk catalog_cache.json!');
+    res.json({ success: true, message: 'Server catalog cache cleared successfully.' });
+  } catch (err) {
+    console.error('[CLEAR CACHE ERROR]', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // API Endpoint for Live Items with ETag Caching & Incremental Delta Support
 app.get('/api/scrape', async (req, res) => {
   const extend = req.query.extend === 'true';
@@ -714,10 +712,10 @@ app.get('/api/scrape', async (req, res) => {
   const since = parseInt(req.query.since || '0', 10);
 
   if (extend) {
-    console.log('[DEEP CRAWLER] Triggering extended deep scan across 10 catalogs x 15 pages...');
-    crawlDeepAuctionPages(10, 15, true);
+    console.log('[DEEP CRAWLER] Triggering extended deep scan across 10 catalogs x 60 pages...');
+    crawlDeepAuctionPages(10, 60, true);
   } else if (force || (refresh && crawlerIntervalSec > 0)) {
-    crawlDeepAuctionPages(6, 8);
+    crawlDeepAuctionPages(10, 60);
   }
 
   // Generate ETag header based on catalog count & timestamp
@@ -730,11 +728,6 @@ app.get('/api/scrape', async (req, res) => {
   }
 
   let itemsArr = Array.from(masterCatalogMap.values());
-  const hasLiveScraped = itemsArr.some(i => i.id && i.id.startsWith('scraped-'));
-
-  if (hasLiveScraped) {
-    itemsArr = itemsArr.filter(i => !(i.id && i.id.startsWith('tl-10')));
-  }
 
   const sanitizedItems = itemsArr.map(item => ({
     ...item,
@@ -770,6 +763,26 @@ app.get('/api/calc', (req, res) => {
   });
 });
 
+// Financial configuration endpoint
+app.get('/api/financials', (req, res) => {
+  const config = {
+    buyerPremiumRate: 0.15,
+    salesTaxRate: 0.0725,
+    ccFeeRate: 0.03
+  };
+  if (req.query.bid !== undefined) {
+    const bid = parseFloat(req.query.bid || 0);
+    const retail = parseFloat(req.query.retail || 0);
+    return res.json({
+      ...config,
+      bid,
+      retail,
+      financials: calculateFinancials(bid, retail)
+    });
+  }
+  res.json(config);
+});
+
 const crypto = require('crypto');
 
 // Per-User Multi-User Session Manager
@@ -778,7 +791,7 @@ const userSessionsMap = new Map();
 function getUserSession(req, res) {
   let sessionId = req.headers['x-session-id'];
   if (!sessionId && req.headers.cookie) {
-    const match = req.headers.cookie.match(/(?:^|;\s*)tl_session_id=([^;]+)/);
+    const match = req.headers.cookie.match(/(?:^|;\s*)bb_session_id=([^;]+)/);
     if (match) sessionId = match[1];
   }
 
@@ -787,7 +800,7 @@ function getUserSession(req, res) {
   }
 
   if (res && !res.headersSent) {
-    res.setHeader('Set-Cookie', `tl_session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+    res.setHeader('Set-Cookie', `bb_session_id=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
   }
 
   if (!userSessionsMap.has(sessionId)) {
@@ -807,7 +820,7 @@ function getUserSession(req, res) {
 }
 
 // Garbage collect inactive user sessions (every hour)
-setInterval(() => {
+const gcInterval = setInterval(() => {
   const now = Date.now();
   const maxAgeMs = 7 * 24 * 3600 * 1000;
   for (const [id, session] of userSessionsMap.entries()) {
@@ -820,6 +833,7 @@ setInterval(() => {
     keysToEvict.forEach(k => userSessionsMap.delete(k));
   }
 }, 3600000);
+gcInterval.unref();
 
 // Auth Status Endpoint
 app.get('/api/auth/status', (req, res) => {
@@ -851,7 +865,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
-    await page.goto('https://auction.triangleliquidators.com/login', { waitUntil: 'networkidle2', timeout: 25000 });
+    await page.goto('https://auction.buggybusters.com/login', { waitUntil: 'networkidle2', timeout: 25000 });
 
     await page.waitForSelector('#username', { timeout: 10000 });
     await page.type('#username', username, { delay: 20 });
@@ -875,7 +889,7 @@ app.post('/api/auth/login', async (req, res) => {
       if (browser) await browser.close();
       return res.status(401).json({
         success: false,
-        error: 'Invalid login credentials for Triangle Liquidators account.'
+        error: 'Invalid login credentials for Buggy Busters account.'
       });
     }
 
@@ -939,7 +953,7 @@ app.post('/api/watchlist/sync', async (req, res) => {
     }
 
     // Navigate to watched-lots page
-    await page.goto('https://auction.triangleliquidators.com/watched-lots', { waitUntil: 'networkidle2', timeout: 25000 });
+    await page.goto('https://auction.buggybusters.com/watched-lots', { waitUntil: 'networkidle2', timeout: 25000 });
 
     const pageUrl = page.url();
     if (pageUrl.includes('/login')) {
@@ -955,7 +969,7 @@ app.post('/api/watchlist/sync', async (req, res) => {
       const lotCards = document.querySelectorAll('.lot-item, .lot-card, [id^="lot-"], .lotTile, div.lot, div[data-lot-id]');
 
       lotCards.forEach(card => {
-        const linkEl = card.querySelector('a[href*="/lots/view/"]');
+        const linkEl = card.querySelector('a[href*="/item/"]') || card.querySelector('a[href*="/lots/view/"]');
         if (!linkEl) return;
 
         const titleEl = card.querySelector('.lot-title, .title, h3, h4') || linkEl;
@@ -989,7 +1003,7 @@ app.post('/api/watchlist/sync', async (req, res) => {
 
       // Fallback: if cards were not structured with .lot-item wrapper, grab all /lots/view/ links
       if (items.length === 0) {
-        const allLinks = Array.from(document.querySelectorAll('a[href*="/lots/view/"]'));
+        const allLinks = Array.from(document.querySelectorAll('a[href*="/item/"], a[href*="/lots/view/"]'));
         allLinks.forEach(a => {
           const title = a.innerText.trim();
           const parentText = a.parentElement ? a.parentElement.innerText : '';
@@ -1125,7 +1139,7 @@ app.post('/api/watchlist/sync', async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Watchlist synced successfully. ${remoteItems.length} active items imported from Triangle Liquidators account.`,
+      message: `Watchlist synced successfully. ${remoteItems.length} active items imported from Buggy Busters account.`,
       remoteItems,
       syncedCount: remoteItems.length
     });
@@ -1226,9 +1240,14 @@ app.post('/api/watchlist/remote-watch', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🚀 Triangle Liquidators Auction Tracker Running`);
-  console.log(`📍 URL: http://localhost:${PORT}`);
-  console.log(`====================================================`);
-});
+if (require.main === module) {
+  app.listen(PORT, '127.0.0.1', () => {
+    console.log(`====================================================`);
+    console.log(`🚀 Buggy Busters Auction Tracker Running`);
+    console.log(`📍 URL: http://127.0.0.1:${PORT}`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = { app, calculateFinancials };
+

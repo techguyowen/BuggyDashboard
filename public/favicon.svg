@@ -6,7 +6,7 @@
       <stop offset="100%" stop-color="#1e293b" />
     </linearGradient>
 
-    <!-- Triangle Crest Gradient -->
+    <!-- Buggy Busters Crest Gradient -->
     <linearGradient id="triGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#10b981" />
       <stop offset="50%" stop-color="#6366f1" />
@@ -30,10 +30,10 @@
   <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
   <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="8" />
 
-  <!-- Outer Glowing Triangle Shield -->
+  <!-- Outer Glowing Buggy Busters Shield -->
   <polygon points="256,64 432,380 80,380" fill="none" stroke="url(#triGrad)" stroke-width="24" stroke-linejoin="round" filter="url(#glow)" opacity="0.9" />
 
-  <!-- Inner Solid Triangle Accent -->
+  <!-- Inner Solid Buggy Busters Accent -->
   <polygon points="256,110 400,360 112,360" fill="rgba(99, 102, 241, 0.15)" stroke="url(#triGrad)" stroke-width="8" stroke-linejoin="round" />
 
   <!-- Stylized Auction Gavel (Center Icon) -->

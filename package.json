@@ -1,18 +1,19 @@
 {
-  "name": "tl-auction-dashboard",
+  "name": "buggy-busters-auction-tracker",
   "version": "1.0.0",
-  "description": "Triangle Liquidators Live Auction Tracking Dashboard with Puppeteer Scraper and Financial Calculator",
+  "description": "Buggy Busters Live Auction Tracking Dashboard with Puppeteer Scraper and Financial Calculator",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "auction",
     "puppeteer",
     "scraper",
     "express",
-    "triangle-liquidators"
+    "buggy-busters"
   ],
   "author": "",
   "license": "ISC",

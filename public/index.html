@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Triangle Liquidators - Live Auction Tracker & Out-of-Pocket Calculator</title>
+  <title>Buggy Busters - Live Auction Tracker & Out-of-Pocket Calculator</title>
   <!-- Browser Tab Favicon Logo -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="shortcut icon" href="/favicon.svg">
   <!-- Pre-connect & DNS Prefetch for Fast Image Fetching -->
-  <link rel="preconnect" href="https://auction.triangleliquidators.com">
-  <link rel="dns-prefetch" href="https://auction.triangleliquidators.com">
+  <link rel="preconnect" href="https://auction.buggybusters.com/">
+  <link rel="dns-prefetch" href="https://auction.buggybusters.com/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -18,19 +18,40 @@
 
   <style>
     :root {
-      --bg-dark: #0f172a;
-      --bg-card: rgba(30, 41, 59, 0.7);
-      --bg-card-hover: rgba(30, 41, 59, 0.95);
-      --border-color: rgba(255, 255, 255, 0.1);
+      /* Dark Canvas Base Colors */
+      --bg-dark: #090d16;
+      --bg-dark-elevated: #0f172a;
+      
+      /* Glassmorphism Surface Tokens */
+      --bg-card: rgba(22, 32, 51, 0.65);
+      --bg-card-hover: rgba(30, 44, 71, 0.85);
+      --bg-glass-panel: rgba(15, 23, 42, 0.75);
+      --bg-glass-input: rgba(15, 23, 42, 0.85);
+      
+      /* Glass Borders & Specular Highlights */
+      --border-color: rgba(255, 255, 255, 0.12);
+      --border-color-hover: rgba(255, 255, 255, 0.24);
+      --border-glow: rgba(16, 185, 129, 0.4);
+      --glass-inset-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+      --glass-box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+      --glass-blur: 14px;
+      
+      /* Typography & High-Contrast Colors */
       --text-main: #f8fafc;
+      --text-secondary: #cbd5e1;
       --text-muted: #94a3b8;
       
-      --accent-raleigh: #10b981;
-      --accent-raleigh-glow: rgba(16, 185, 129, 0.25);
-      --accent-sc: #6366f1;
-      --accent-sc-glow: rgba(99, 102, 241, 0.25);
+      /* Vibrant Brand Accents */
+      --accent-primary: #10b981;
+      --accent-primary-glow: rgba(16, 185, 129, 0.3);
+      --accent-secondary: #6366f1;
+      --accent-secondary-glow: rgba(99, 102, 241, 0.3);
       --accent-gold: #f59e0b;
-      --accent-gold-glow: rgba(245, 158, 11, 0.2);
+      --accent-gold-glow: rgba(245, 158, 11, 0.3);
+      --accent-cyan: #38bdf8;
+      --accent-cyan-glow: rgba(56, 189, 248, 0.3);
+      --accent-red: #ef4444;
+      --accent-red-glow: rgba(239, 68, 68, 0.3);
       
       --sidebar-width: 320px;
     }
@@ -42,11 +63,13 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.08) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.12) 0px, transparent 45%),
+        radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 45%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.06) 0px, transparent 45%);
       background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
@@ -56,10 +79,11 @@
 
     /* HEADER */
     header {
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(9, 13, 22, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 -1px 0 0 rgba(255, 255, 255, 0.08);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -109,7 +133,7 @@
     .live-pulse {
       width: 8px;
       height: 8px;
-      background-color: var(--accent-raleigh);
+      background-color: var(--accent-primary);
       border-radius: 50%;
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
       animation: pulse 1.8s infinite;
@@ -210,7 +234,7 @@
 
     .account-auth-btn:hover {
       background: rgba(16, 185, 129, 0.15);
-      border-color: var(--accent-raleigh);
+      border-color: var(--accent-primary);
     }
 
     .status-dot {
@@ -222,8 +246,8 @@
     }
 
     .status-dot.connected {
-      background-color: var(--accent-raleigh);
-      box-shadow: 0 0 8px var(--accent-raleigh-glow);
+      background-color: var(--accent-primary);
+      box-shadow: 0 0 8px var(--accent-primary-glow);
     }
 
     .status-dot.disconnected {
@@ -256,7 +280,7 @@
 
     .auth-alert.success {
       background: rgba(16, 185, 129, 0.15);
-      border: 1px solid var(--accent-raleigh);
+      border: 1px solid var(--accent-primary);
       color: #6ee7b7;
     }
 
@@ -268,7 +292,7 @@
 
     .auth-alert.info {
       background: rgba(99, 102, 241, 0.15);
-      border: 1px solid var(--accent-sc);
+      border: 1px solid var(--accent-secondary);
       color: #a5b4fc;
     }
 
@@ -322,8 +346,9 @@
       gap: 0.8rem;
       background: rgba(30, 41, 59, 0.85);
       border: 1px solid rgba(245, 158, 11, 0.4);
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15), var(--glass-inset-shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       padding: 0.75rem 1.25rem;
       border-radius: 12px;
       margin-bottom: 1.2rem;
@@ -368,8 +393,11 @@
     /* SIDEBAR */
     aside {
       width: var(--sidebar-width);
-      background: rgba(15, 23, 42, 0.7);
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border-right: 1px solid var(--border-color);
+      box-shadow: inset -1px 0 0 0 rgba(255, 255, 255, 0.05);
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
@@ -395,7 +423,7 @@
 
     .reset-btn {
       font-size: 0.72rem;
-      color: var(--accent-raleigh);
+      color: var(--accent-primary);
       background: none;
       border: none;
       cursor: pointer;
@@ -422,14 +450,15 @@
 
     .form-input, .form-select {
       width: 100%;
-      background: rgba(30, 41, 59, 0.9);
+      background: var(--bg-glass-input);
       border: 1px solid var(--border-color);
       color: var(--text-main);
       padding: 0.65rem 0.9rem 0.65rem 2.4rem;
       border-radius: 8px;
       font-size: 0.9rem;
       outline: none;
-      transition: border-color 0.2s ease;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
     .form-select {
@@ -443,19 +472,19 @@
     }
 
     .form-input:focus, .form-select:focus {
-      border-color: var(--accent-raleigh);
-      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 2px var(--accent-primary-glow), inset 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
     .slider-value {
       font-weight: 700;
-      color: var(--accent-raleigh);
+      color: var(--accent-primary);
       font-size: 1rem;
     }
 
     input[type=range] {
       width: 100%;
-      accent-color: var(--accent-raleigh);
+      accent-color: var(--accent-primary);
       cursor: pointer;
     }
 
@@ -509,11 +538,14 @@
 
     /* FEE BREAKDOWN CARD */
     .fee-card {
-      background: rgba(30, 41, 59, 0.5);
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 1rem;
       font-size: 0.82rem;
+      box-shadow: var(--glass-inset-shadow);
     }
 
     .fee-card-title {
@@ -557,12 +589,15 @@
 
     .stat-card {
       background: var(--bg-card);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 1rem 1.2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: var(--glass-box-shadow), var(--glass-inset-shadow);
     }
 
     .stat-info .stat-value {
@@ -588,8 +623,8 @@
       font-size: 1.1rem;
     }
 
-    .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-raleigh); }
-    .stat-icon.indigo { background: rgba(99, 102, 241, 0.15); color: var(--accent-sc); }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-primary); }
+    .stat-icon.indigo { background: rgba(99, 102, 241, 0.15); color: var(--accent-secondary); }
     .stat-icon.gold { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
     .stat-icon.red { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
@@ -598,10 +633,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(30, 41, 59, 0.4);
+      background: rgba(22, 32, 51, 0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       padding: 0.8rem 1.2rem;
       border-radius: 10px;
       border: 1px solid var(--border-color);
+      box-shadow: var(--glass-inset-shadow);
     }
 
     .results-count {
@@ -666,6 +704,8 @@
     /* ITEM CARD */
     .item-card {
       background: var(--bg-card);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid var(--border-color);
       border-radius: 14px;
       overflow: hidden;
@@ -675,18 +715,19 @@
       position: relative;
       content-visibility: auto;
       contain-intrinsic-size: 1px 380px;
+      box-shadow: var(--glass-box-shadow), var(--glass-inset-shadow);
     }
 
     .item-card:hover {
       transform: translateY(-4px);
       background: var(--bg-card-hover);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+      border-color: var(--border-color-hover);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
     }
 
     .item-card.watchlist-match {
       border: 1.5px solid var(--accent-gold);
-      box-shadow: 0 0 15px var(--accent-gold-glow);
+      box-shadow: 0 0 22px var(--accent-gold-glow), inset 0 1px 0 0 rgba(245, 158, 11, 0.3);
     }
 
     .card-image-wrapper {
@@ -772,15 +813,16 @@
       text-transform: uppercase;
       letter-spacing: 0.03em;
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
-    .badge-raleigh {
+    .badge-morganton {
       background: rgba(16, 185, 129, 0.85);
       color: #022c22;
       box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
     }
 
-    .badge-sc {
+    .badge-catalog {
       background: rgba(99, 102, 241, 0.85);
       color: #1e1b4b;
       box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
@@ -918,13 +960,16 @@
 
     /* FINANCIAL PRICE COMPARISON BOX */
     .financial-box {
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 0.85rem 1rem;
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2), var(--glass-inset-shadow);
     }
 
     .price-row {
@@ -959,14 +1004,14 @@
     .total-label {
       font-size: 0.82rem;
       font-weight: 700;
-      color: var(--accent-raleigh);
+      color: var(--accent-primary);
     }
 
     .total-amount {
       font-size: 1.35rem;
       font-weight: 800;
       font-family: 'Outfit', sans-serif;
-      color: var(--accent-raleigh);
+      color: var(--accent-primary);
     }
 
     .fee-tooltip-trigger {
@@ -1002,8 +1047,8 @@
     }
 
     .bid-btn:hover {
-      background: var(--accent-raleigh);
-      border-color: var(--accent-raleigh);
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
       color: #022c22;
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
@@ -1015,8 +1060,9 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
+      background: rgba(9, 13, 22, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       z-index: 1000;
       display: flex;
       align-items: center;
@@ -1032,14 +1078,16 @@
     }
 
     .modal-card {
-      background: #1e293b;
-      border: 1px solid var(--border-color);
+      background: rgba(22, 32, 51, 0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color-hover);
       border-radius: 16px;
       width: 90%;
       max-width: 580px;
       max-height: 90vh;
       padding: 1.5rem;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
       display: flex;
       flex-direction: column;
       gap: 1rem;
@@ -1090,7 +1138,7 @@
     }
 
     .tab-btn.active {
-      background: linear-gradient(135deg, var(--accent-raleigh), #4f46e5);
+      background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
       color: #ffffff;
       border-color: rgba(255, 255, 255, 0.3);
       box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
@@ -1224,7 +1272,7 @@
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-raleigh), #4f46e5);
+      background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
       color: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.3);
@@ -1270,27 +1318,32 @@
 
   <!-- HEADER -->
   <header>
-    <div class="brand-section">
+    <a href="https://auction.buggybusters.com/" target="_blank" rel="noopener" class="brand-section" style="text-decoration: none; color: inherit;" title="Open Official Buggy Busters Site (auction.buggybusters.com)">
       <div class="brand-logo">
         <i class="fa-solid fa-gavel"></i>
       </div>
       <div>
-        <div class="brand-title">Triangle Liquidators</div>
+        <div class="brand-title">Buggy Busters <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.8rem; opacity: 0.75; margin-left: 2px;"></i></div>
         <div class="brand-subtitle">
           <span class="live-pulse"></span>
-          Live Auction Tracker & Customizable Watchlist Engine
+          Live Auction Tracker — Morganton, NC Depot
         </div>
       </div>
-    </div>
+    </a>
 
     <div class="header-actions">
+      <a href="https://auction.buggybusters.com/" target="_blank" rel="noopener" class="sync-btn" style="background: rgba(255,255,255,0.08); text-decoration: none; color: var(--text-main); font-weight: 600;" title="Open Official Buggy Busters Website">
+        <i class="fa-solid fa-globe" style="color: #38bdf8;"></i>
+        <span>buggybusters.com</span>
+      </a>
+
       <button id="accountAuthBtn" class="account-auth-btn" onclick="openCredentialsModal()" title="Connect Auction Account">
         <span class="status-dot disconnected" id="authStatusDot"></span>
         <i class="fa-solid fa-user-shield"></i>
         <span id="authStatusText">Connect Auction Account</span>
       </button>
 
-      <button id="syncWatchlistBtn" class="sync-btn watchlist-sync-btn" onclick="syncLiveWatchlist()" title="Bi-Directional Watchlist Sync with Triangle Liquidators">
+      <button id="syncWatchlistBtn" class="sync-btn watchlist-sync-btn" onclick="syncLiveWatchlist()" title="Bi-Directional Watchlist Sync with Buggy Busters">
         <i class="fa-solid fa-cloud-arrow-down"></i>
         <span>Sync Watchlist</span>
       </button>
@@ -1321,7 +1374,7 @@
       <!-- LIVE SCRAPER PROGRESS WIDGET -->
       <div class="progress-widget" id="progressWidget">
         <div class="progress-header">
-          <span><i class="fa-solid fa-radar" style="color: var(--accent-raleigh);"></i> Crawler Status</span>
+          <span><i class="fa-solid fa-radar" style="color: var(--accent-primary);"></i> Crawler Status</span>
           <span id="progressPctText">100%</span>
         </div>
         <div class="progress-bar-bg">
@@ -1357,13 +1410,11 @@
         </div>
       </div>
 
-      <!-- LOCATION FILTER -->
+      <!-- AUCTION CATALOG FILTER -->
       <div class="filter-group">
-        <div class="filter-label">Location Filter</div>
-        <select id="locationSelect" class="form-select" onchange="applyFilters()">
-          <option value="All" selected>🌐 All Locations (Raleigh & SC Transfer)</option>
-          <option value="Raleigh">📍 Raleigh, NC Only (1101 Transport Dr)</option>
-          <option value="SC Transfer">🚚 SC Transfer (Williamston / Anderson, SC)</option>
+        <div class="filter-label">Auction Catalog Filter</div>
+        <select id="auctionCatalogSelect" class="form-select" onchange="applyFilters()">
+          <option value="All" selected>🌐 All Morganton Catalogs</option>
         </select>
       </div>
 
@@ -1372,17 +1423,21 @@
         <div class="filter-label">Category</div>
         <select id="categorySelect" class="form-select" onchange="applyFilters()">
           <option value="All" selected>📦 All Categories</option>
+          <option value="Apparel, Shoes & Accessories">👟 Apparel, Shoes & Accessories</option>
+          <option value="Health, Beauty & Skincare">🧴 Health, Beauty & Skincare</option>
+          <option value="Toys, Baby & Kids">🧸 Toys, Baby & Kids</option>
+          <option value="Bedding, Bath & Linens">🛁 Bedding, Bath & Linens</option>
           <option value="Tools & Equipment">🧰 Tools & Equipment</option>
           <option value="Electronics & Gaming">📱 Electronics & Gaming</option>
-          <option value="Major Appliances">⚡ Major Appliances</option>
-          <option value="Lawn & Garden">🌱 Lawn & Garden</option>
+          <option value="Major Appliances & HVAC">⚡ Major Appliances & HVAC</option>
           <option value="Kitchen & Dining">🍳 Kitchen & Dining</option>
           <option value="Furniture & Home Decor">🛋️ Furniture & Home Decor</option>
+          <option value="Lawn & Garden">🌱 Lawn & Garden</option>
           <option value="Generators & Solar Power">🔋 Generators & Solar Power</option>
           <option value="Automotive & Marine">🚗 Automotive & Marine</option>
           <option value="Sports, Fitness & Outdoors">🚴 Sports, Fitness & Outdoors</option>
           <option value="Hardware & Plumbing">🔧 Hardware & Plumbing</option>
-          <option value="Pallets & Bulk Merchandise">📦 Pallets & Bulk Lots</option>
+          <option value="Pallets & Bulk Lots">📦 Pallets & Bulk Lots</option>
           <option value="General Merchandise">🛒 General Merchandise</option>
         </select>
       </div>
@@ -1437,7 +1492,7 @@
       <!-- FEE BREAKDOWN CARD -->
       <div class="fee-card">
         <div class="fee-card-title">
-          <i class="fa-solid fa-calculator" style="color: var(--accent-raleigh);"></i>
+          <i class="fa-solid fa-calculator" style="color: var(--accent-primary);"></i>
           Fee Calculation Engine
         </div>
         <div class="fee-row">
@@ -1445,7 +1500,7 @@
           <span>+ 15.0%</span>
         </div>
         <div class="fee-row">
-          <span>Wake Co. NC Tax</span>
+          <span>Sales Tax (7.25%)</span>
           <span>+ 7.25%</span>
         </div>
         <div class="fee-row">
@@ -1454,7 +1509,7 @@
         </div>
         <div class="fee-row total">
           <span>Est. Out-of-Pocket</span>
-          <span>Current Bid × ~1.267</span>
+          <span>Current Bid × ~1.270</span>
         </div>
       </div>
     </aside>
@@ -1631,11 +1686,9 @@
           </p>
 
           <div class="filter-group">
-            <div class="filter-label">Default Pickup Location Filter</div>
-            <select id="prefDefaultLocation" class="form-select" onchange="saveUserSettingsFromUI()">
-              <option value="All">🌐 All Locations (Raleigh & SC Transfer)</option>
-              <option value="Raleigh">📍 Raleigh, NC Only</option>
-              <option value="SC Transfer">🚚 SC Transfer Only</option>
+            <div class="filter-label">Default Auction Catalog Filter</div>
+            <select id="prefDefaultCatalog" class="form-select" onchange="saveUserSettingsFromUI()">
+              <option value="All">🌐 All Morganton Catalogs</option>
             </select>
           </div>
 
@@ -1664,7 +1717,7 @@
 
           <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.3rem;">
             <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" id="prefHideClosed" onchange="saveUserSettingsFromUI()" style="accent-color: var(--accent-raleigh);">
+              <input type="checkbox" id="prefHideClosed" onchange="saveUserSettingsFromUI()" style="accent-color: var(--accent-primary);">
               <span>Auto-hide ended / closed auctions</span>
             </label>
 
@@ -1683,6 +1736,16 @@
             </div>
             <button class="sync-btn" onclick="clearStaleFavorites()" style="align-self: flex-start; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8; font-size: 0.8rem; padding: 0.4rem 0.8rem;">
               <i class="fa-solid fa-broom"></i> Purge Stale Favorites Now
+            </button>
+          <div class="backup-box" style="margin-top: 0.8rem; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3);">
+            <div style="font-weight: 700; color: #ef4444; font-size: 0.85rem;">
+              <i class="fa-solid fa-trash-can"></i> Clear Local Computer & Server Cache
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">
+              Wipes all cached items stored on your computer (IndexedDB, LocalStorage, Watchlist) and resets server catalog cache to force a clean fresh scan.
+            </div>
+            <button class="sync-btn" onclick="clearAllLocalAndServerCache()" style="align-self: flex-start; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #ef4444; font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+              <i class="fa-solid fa-trash-can"></i> Clear All Local Storage & Server Cache Now
             </button>
           </div>
 
@@ -1723,10 +1786,10 @@
 
             <div style="display: flex; gap: 1rem; font-size: 0.82rem; color: var(--text-muted);">
               <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
-                <input type="radio" name="importMode" value="merge" checked style="accent-color: var(--accent-raleigh);"> Merge with existing
+                <input type="radio" name="importMode" value="merge" checked style="accent-color: var(--accent-primary);"> Merge with existing
               </label>
               <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
-                <input type="radio" name="importMode" value="replace" style="accent-color: var(--accent-raleigh);"> Overwrite current
+                <input type="radio" name="importMode" value="replace" style="accent-color: var(--accent-primary);"> Overwrite current
               </label>
             </div>
 
@@ -1749,7 +1812,7 @@
     <div class="modal-card help-modal-card" style="max-width: 640px;">
       <div class="modal-header">
         <div class="modal-title">
-          <i class="fa-solid fa-circle-question" style="color: var(--accent-raleigh);"></i> 
+          <i class="fa-solid fa-circle-question" style="color: var(--accent-primary);"></i> 
           Dashboard Help & Instructions Guide
         </div>
         <button class="close-modal-btn" onclick="closeHelpModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -1764,7 +1827,7 @@
             Est. Out-of-Pocket Cost Calculation
           </div>
           <div class="guide-text">
-            Triangle Liquidators adds standard auction fees to your winning hammer bid:
+            Buggy Busters adds standard auction fees to your winning hammer bid:
             <ul style="margin: 0.4rem 0 0.4rem 1.2rem; line-height: 1.5;">
               <li><strong>15% Buyer's Premium (BP)</strong></li>
               <li><strong>7.25% Sales Tax</strong> (applied to Bid + BP)</li>
@@ -1780,11 +1843,11 @@
         <div class="guide-box">
           <div class="guide-title">
             <i class="fa-solid fa-location-dot" style="color: #ef4444;"></i>
-            Pickup Locations & SC Transfer
+            Pickup Locations (Morganton, NC)
           </div>
           <div class="guide-text">
-            • <strong>📍 Raleigh Pickup:</strong> 1101 Transport Dr, Raleigh, NC 27603. Directly inspect and pick up won lots locally after closing.
-            <br>• <strong>🚚 SC Transfer:</strong> Items transferred to the Williamston / Anderson, SC Depot for South Carolina bidders. Filter by location using the sidebar location selector.
+            • <strong>📍 Morganton Location:</strong> 160 Fiddlers Run Blvd, Morganton, NC 28655 (inside Bin5). Directly inspect and pick up won auction items locally after closing.
+            <br>• <strong>🕒 Store & Pickup Hours:</strong> Mon–Sat 10:00am – 6:00pm (Auction pickup closes at 5:30pm).
           </div>
         </div>
 
@@ -1825,7 +1888,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-title">
-          <i class="fa-solid fa-user-shield" style="color: var(--accent-raleigh);"></i> 
+          <i class="fa-solid fa-user-shield" style="color: var(--accent-primary);"></i> 
           Auction Site Credentials & Headless Sync
         </div>
         <button class="close-modal-btn" onclick="closeCredentialsModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -1833,7 +1896,7 @@
 
       <div class="modal-body">
         <p style="font-size: 0.85rem; color: var(--text-muted);">
-          Enter your login credentials for <strong style="color: var(--text-main);">auction.triangleliquidators.com</strong> to sync your Watch List headlessly to and from the live auction site.
+          Enter your login credentials for <strong style="color: var(--text-main);">https://auction.buggybusters.com/</strong> to sync your Watch List headlessly to and from the live auction site.
         </p>
 
         <div id="authAlert" class="auth-alert" style="display: none;"></div>
@@ -1855,7 +1918,7 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
-          <input type="checkbox" id="rememberCreds" checked style="accent-color: var(--accent-raleigh);">
+          <input type="checkbox" id="rememberCreds" checked style="accent-color: var(--accent-primary);">
           <label for="rememberCreds">Remember email for future sessions</label>
         </div>
       </div>
@@ -1902,22 +1965,22 @@
     // Load persistent watchlist, settings & favorites from localStorage
     function loadSavedState() {
       try {
-        const storedKeywords = localStorage.getItem('tl_watchlist_keywords');
+        const storedKeywords = localStorage.getItem('bb_watchlist_keywords');
         if (storedKeywords) {
           activeWatchlist = new Set(JSON.parse(storedKeywords));
         }
 
-        const storedExcludeKeywords = localStorage.getItem('tl_exclude_watchlist_keywords');
+        const storedExcludeKeywords = localStorage.getItem('bb_exclude_watchlist_keywords');
         if (storedExcludeKeywords) {
           activeExcludeWatchlist = new Set(JSON.parse(storedExcludeKeywords));
         }
 
-        const storedFavs = localStorage.getItem('tl_saved_favorite_urls');
+        const storedFavs = localStorage.getItem('bb_saved_favorite_urls');
         if (storedFavs) {
           savedFavoriteUrls = new Set(JSON.parse(storedFavs));
         }
 
-        const storedSettings = localStorage.getItem('tl_user_settings');
+        const storedSettings = localStorage.getItem('bb_user_settings');
         if (storedSettings) {
           userSettings = { ...userSettings, ...JSON.parse(storedSettings) };
         }
@@ -1930,26 +1993,26 @@
 
     function saveWatchlistState() {
       try {
-        localStorage.setItem('tl_watchlist_keywords', JSON.stringify(Array.from(activeWatchlist)));
+        localStorage.setItem('bb_watchlist_keywords', JSON.stringify(Array.from(activeWatchlist)));
       } catch (e) {}
     }
 
     function saveExcludeWatchlistState() {
       try {
-        localStorage.setItem('tl_exclude_watchlist_keywords', JSON.stringify(Array.from(activeExcludeWatchlist)));
+        localStorage.setItem('bb_exclude_watchlist_keywords', JSON.stringify(Array.from(activeExcludeWatchlist)));
       } catch (e) {}
     }
 
     function saveFavoritesState() {
       try {
-        localStorage.setItem('tl_saved_favorite_urls', JSON.stringify(Array.from(savedFavoriteUrls)));
+        localStorage.setItem('bb_saved_favorite_urls', JSON.stringify(Array.from(savedFavoriteUrls)));
       } catch (e) {}
       updateSavedCountLabel();
     }
 
     function saveUserSettingsState() {
       try {
-        localStorage.setItem('tl_user_settings', JSON.stringify(userSettings));
+        localStorage.setItem('bb_user_settings', JSON.stringify(userSettings));
       } catch (e) {}
     }
 
@@ -2023,7 +2086,7 @@
     /* EXPORT & IMPORT BACKUP SYSTEM */
     function exportSettingsJSON() {
       const backupData = {
-        app: "Triangle Liquidators Auction Tracker",
+        app: "Buggy Busters Auction Tracker",
         version: "1.2",
         exportDate: new Date().toISOString(),
         activeWatchlistKeywords: Array.from(activeWatchlist),
@@ -2037,7 +2100,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `tl_dashboard_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `bb_dashboard_backup_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2226,7 +2289,7 @@
       const alertBox = document.getElementById('authAlert');
       if (alertBox) alertBox.style.display = 'none';
 
-      const savedEmail = localStorage.getItem('tl_saved_auth_email');
+      const savedEmail = localStorage.getItem('bb_saved_auth_email');
       if (savedEmail) {
         document.getElementById('authEmail').value = savedEmail;
       }
@@ -2257,7 +2320,7 @@
       submitBtn.classList.add('loading');
       submitBtn.disabled = true;
       alertBox.className = 'auth-alert info';
-      alertBox.innerHTML = '<i class="fa-solid fa-spinner spin-icon"></i> Logging into Triangle Liquidators headlessly via Puppeteer...';
+      alertBox.innerHTML = '<i class="fa-solid fa-spinner spin-icon"></i> Logging into Buggy Busters headlessly via Puppeteer...';
       alertBox.style.display = 'flex';
 
       try {
@@ -2274,7 +2337,7 @@
           alertBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${data.message}`;
 
           if (document.getElementById('rememberCreds').checked) {
-            localStorage.setItem('tl_saved_auth_email', username);
+            localStorage.setItem('bb_saved_auth_email', username);
           }
 
           await checkAuthStatus();
@@ -2316,7 +2379,7 @@
 
       syncBtn.classList.add('loading');
       if (dot) dot.className = 'status-dot syncing';
-      showToastNotice('🔄 Syncing Watchlist with Triangle Liquidators account...');
+      showToastNotice('🔄 Syncing Watchlist with Buggy Busters account...');
 
       try {
         const localUrls = Array.from(savedFavoriteUrls);
@@ -2473,7 +2536,7 @@
       if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toastNotice';
-        toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #f8fafc; border: 1px solid var(--accent-raleigh); border-radius: 12px; padding: 0.8rem 1.2rem; font-size: 0.85rem; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 9999; transition: all 0.3s ease; opacity: 0; transform: translateY(10px); pointer-events: none;';
+        toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #f8fafc; border: 1px solid var(--accent-primary); border-radius: 12px; padding: 0.8rem 1.2rem; font-size: 0.85rem; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 9999; transition: all 0.3s ease; opacity: 0; transform: translateY(10px); pointer-events: none;';
         document.body.appendChild(toast);
       }
       toast.innerText = msg;
@@ -2633,11 +2696,11 @@
 
     function calcFin(bid, retail) {
       const b = parseFloat(bid) || 0;
-      const bp = b * 0.15;
-      const sub = b + bp;
-      const tax = sub * 0.0725;
-      const cc = (sub + tax) * 0.03;
-      const tot = sub + tax + cc;
+      const bp = Math.round((b * 0.15) * 100) / 100;
+      const sub = Math.round((b + bp) * 100) / 100;
+      const tax = Math.round((sub * 0.0725) * 100) / 100;
+      const cc = Math.round(((sub + tax) * 0.03) * 100) / 100;
+      const tot = Math.round((sub + tax + cc) * 100) / 100;
       const ret = parseFloat(retail) || null;
       let sav = null;
       if (ret && ret > tot) {
@@ -2694,7 +2757,7 @@
     function resetFilters() {
       document.getElementById('searchInput').value = '';
       if (document.getElementById('excludeInput')) document.getElementById('excludeInput').value = '';
-      document.getElementById('locationSelect').value = 'All';
+      if (document.getElementById('auctionCatalogSelect')) document.getElementById('auctionCatalogSelect').value = 'All';
       document.getElementById('categorySelect').value = 'All';
       if (document.getElementById('timeFilterSelect')) document.getElementById('timeFilterSelect').value = 'All';
       document.getElementById('budgetRange').value = 500;
@@ -2703,6 +2766,68 @@
       filterSavedOnly = false;
       document.getElementById('savedOnlyBtn').classList.remove('active');
       applyFilters();
+    }
+
+    async function clearAllLocalAndServerCache() {
+      if (!confirm('⚠️ Are you sure you want to clear ALL cached auction items and local computer storage? This will wipe browser storage, IndexedDB, and server cache, then trigger a clean fresh scan.')) {
+        return;
+      }
+
+      showToastNotice('🧹 Clearing local computer cache & resetting server database...');
+
+      try {
+        // 1. Wipe server cache
+        await fetch('/api/clear-cache', { method: 'POST' });
+
+        // 2. Clear browser IndexedDB
+        try {
+          const db = await openCatalogDB();
+          const tx = db.transaction('items', 'readwrite');
+          tx.objectStore('items').clear();
+        } catch (e) {
+          console.warn('IndexedDB clear error', e);
+        }
+
+        // 3. Clear localStorage items
+        localStorage.removeItem('BB_User_Settings');
+        localStorage.removeItem('BB_Saved_Favorites');
+        localStorage.removeItem('BB_Watchlist_Tags');
+        localStorage.removeItem('BB_Exclude_Tags');
+
+        // 4. Reset in-memory states
+        allItems = [];
+        currentFilteredItems = [];
+        savedFavoriteUrls.clear();
+        activeWatchlist.clear();
+        activeExcludeWatchlist.clear();
+        lastSyncTimestamp = 0;
+
+        // 5. Reset UI components & empty state
+        const grid = document.getElementById('cardsGrid');
+        if (grid) {
+          grid.innerHTML = `
+            <div class="empty-state">
+              <i class="fa-solid fa-broom" style="font-size: 2.5rem; color: var(--accent-primary); margin-bottom: 0.8rem;"></i>
+              <h3>Cache & Storage Completely Wiped</h3>
+              <p>Local computer cache and server catalog have been cleared. Triggering fresh live auction crawl...</p>
+              <button class="sync-btn" onclick="syncAuctionData(true)" style="margin-top: 1rem;">
+                <i class="fa-solid fa-rotate"></i> Start Fresh Scan Now
+              </button>
+            </div>
+          `;
+        }
+
+        updateStats([]);
+        populateAuctionCatalogSelect();
+        closeSettingsModal();
+        showToastNotice('✨ All local computer storage & server cache cleared cleanly!');
+
+        // 6. Trigger clean fresh scan from server
+        syncAuctionData(true);
+      } catch (err) {
+        console.error('Clear cache error', err);
+        showToastNotice('❌ Error clearing cache: ' + err.message);
+      }
     }
 
     function formatTimeRemaining(endsAtISO, closingDateStr) {
@@ -2783,6 +2908,30 @@
       if (removedCount > 0) {
         console.log(`[FAVORITES AUTO-PURGE] Purged ${removedCount} stale/orphan favorite URLs.`);
         saveFavoritesState();
+      }
+    }
+
+    function populateAuctionCatalogSelect() {
+      const select = document.getElementById('auctionCatalogSelect');
+      const prefSelect = document.getElementById('prefDefaultCatalog');
+      if (!select) return;
+
+      const currentSelection = select.value || 'All';
+      const uniqueAuctions = Array.from(new Set(allItems.map(i => i.auctionName).filter(Boolean)));
+
+      let html = `<option value="All">🌐 All Morganton Catalogs (${uniqueAuctions.length} Active)</option>`;
+      uniqueAuctions.forEach(auc => {
+        const cleanName = auc.replace(/^🏷️\s*/, '');
+        html += `<option value="${cleanName}">🏷️ ${cleanName}</option>`;
+      });
+
+      select.innerHTML = html;
+      if (prefSelect) prefSelect.innerHTML = html;
+
+      if (uniqueAuctions.includes(currentSelection)) {
+        select.value = currentSelection;
+      } else {
+        select.value = 'All';
       }
     }
 
@@ -2918,7 +3067,7 @@
     function openCatalogDB() {
       if (dbPromise) return dbPromise;
       dbPromise = new Promise((resolve, reject) => {
-        const req = indexedDB.open('TL_Catalog_DB', 1);
+        const req = indexedDB.open('BB_Catalog_DB', 1);
         req.onupgradeneeded = (e) => {
           const db = e.target.result;
           if (!db.objectStoreNames.contains('items')) {
@@ -2987,11 +3136,7 @@
 
       const isInitialRender = (allItems.length === 0);
 
-      const hasLiveScraped = newItems.some(i => i.id && i.id.startsWith('scraped-'));
       let cleanedItems = newItems;
-      if (hasLiveScraped) {
-        cleanedItems = newItems.filter(i => !(i.id && i.id.startsWith('tl-10')));
-      }
 
       // Merge incoming items into catalog map so active items list auto-grows dynamically as ingestion runs
       const catalogMap = new Map();
@@ -3008,6 +3153,7 @@
         !(i.id && i.id.startsWith('watched-'))
       );
       autoCleanEndedFavorites();
+      populateAuctionCatalogSelect();
 
       if (shouldSaveDB) {
         saveItemsToIndexedDB(cleanedItems);
@@ -3113,7 +3259,7 @@
     function applyFilters(isBackgroundUpdate = false) {
       const rawQuery = document.getElementById('searchInput').value.trim();
       const rawExclude = document.getElementById('excludeInput') ? document.getElementById('excludeInput').value.trim().toLowerCase() : '';
-      const location = document.getElementById('locationSelect').value;
+      const selectedCatalog = document.getElementById('auctionCatalogSelect') ? document.getElementById('auctionCatalogSelect').value : 'All';
       const category = document.getElementById('categorySelect').value;
       const timeFilter = document.getElementById('timeFilterSelect') ? document.getElementById('timeFilterSelect').value : 'All';
       const maxBudget = parseFloat(document.getElementById('budgetRange').value);
@@ -3153,9 +3299,8 @@
           if (!matchesAllPositive) return false;
         }
         
-        if (location !== 'All') {
-          if (location === 'Raleigh' && item.location !== 'Raleigh') return false;
-          if (location === 'SC Transfer' && item.location !== 'SC Transfer') return false;
+        if (selectedCatalog !== 'All') {
+          if (item.auctionName !== selectedCatalog && !item.auctionName?.includes(selectedCatalog)) return false;
         }
 
         if (category !== 'All' && item.category !== category) return false;
@@ -3267,7 +3412,6 @@
     function renderCardHTML(item) {
       const fin = item.financials || calcFin(item.currentBid, item.retailPrice);
       const watchMatch = isWatchlistMatch(item.title);
-      const isRaleigh = item.location === 'Raleigh';
       const isSaved = savedFavoriteUrls.has(item.url);
       const timeInfo = formatTimeRemaining(item.endsAt, item.closingDate);
 
@@ -3280,8 +3424,8 @@
 
             <img src="${item.image}" alt="${item.title}" class="card-image" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'360\' height=\'270\' viewBox=\'0 0 360 270\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%231e293b\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%2364748b\' font-family=\'sans-serif\' font-size=\'14\' text-anchor=\'middle\' dy=\'.3em\'%3E📷 Image Unavailable%3C/text%3E%3C/svg%3E';this.classList.add('loaded');">
             <div class="card-badges">
-              <span class="badge ${isRaleigh ? 'badge-raleigh' : 'badge-sc'}">
-                ${isRaleigh ? '📍 Raleigh Pickup' : '🚚 SC Transfer'}
+              <span class="badge badge-morganton">
+                📍 Morganton, NC
               </span>
               ${fin.savingsPct ? `<span class="badge badge-savings"><i class="fa-solid fa-bolt"></i> SAVE ${fin.savingsPct}%</span>` : (watchMatch ? '<span class="badge badge-watchlist"><i class="fa-solid fa-fire"></i> Watchlist</span>' : '')}
             </div>
