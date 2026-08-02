@@ -3,7 +3,7 @@ version: '3.8'
 services:
   buggy-auction-dashboard:
     build: .
-    image: ghcr.io/techguyowen/buggy-dashboard:latest
+    image: ghcr.io/techguyowen/buggydashboard:latest
     container_name: buggy-auction-dashboard
     restart: unless-stopped
     ports:
