@@ -20,14 +20,15 @@ services:
     container_name: buggy-auction-dashboard
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "7422:7422"
     volumes:
       - ./catalog_cache.json:/app/catalog_cache.json
     environment:
-      - PORT=3001
+      - PORT=7422
+      - HOST=0.0.0.0
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/progress"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7422/api/progress"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -40,7 +41,7 @@ services:
 docker compose up -d
 ```
 
-Access the dashboard at `http://localhost:3001`.
+Access the dashboard at `http://<your-server-ip>:7422` (or `http://localhost:7422`).
 
 ---
 
@@ -49,7 +50,9 @@ Access the dashboard at `http://localhost:3001`.
 ```bash
 docker run -d \
   --name buggy-auction-dashboard \
-  -p 3001:3001 \
+  -p 7422:7422 \
+  -e PORT=7422 \
+  -e HOST=0.0.0.0 \
   -v ./catalog_cache.json:/app/catalog_cache.json \
   --restart unless-stopped \
   ghcr.io/techguyowen/buggydashboard:latest
@@ -72,14 +75,15 @@ services:
     container_name: buggy-auction-dashboard
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "7422:7422"
     volumes:
       - ./catalog_cache.json:/app/catalog_cache.json
     environment:
-      - PORT=3001
+      - PORT=7422
+      - HOST=0.0.0.0
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/progress"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7422/api/progress"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -104,4 +108,4 @@ npm install
 npm start
 ```
 
-Access the dashboard at `http://localhost:3001`.
+Access the dashboard at `http://localhost:7422`.

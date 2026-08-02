@@ -5,7 +5,8 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 7422;
+const HOST = process.env.HOST || '0.0.0.0';
 const CACHE_FILE_PATH = path.join(__dirname, 'catalog_cache.json');
 let lastCatalogUpdateTime = Date.now();
 
@@ -1241,10 +1242,10 @@ app.post('/api/watchlist/remote-watch', async (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, '127.0.0.1', () => {
+  app.listen(PORT, HOST, () => {
     console.log(`====================================================`);
     console.log(`🚀 Buggy Busters Auction Tracker Running`);
-    console.log(`📍 URL: http://127.0.0.1:${PORT}`);
+    console.log(`📍 URL: http://${HOST}:${PORT}`);
     console.log(`====================================================`);
   });
 }

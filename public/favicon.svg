@@ -2,56 +2,46 @@
   <defs>
     <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e293b" />
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
 
-    <!-- Buggy Busters Crest Gradient -->
-    <linearGradient id="triGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Radar Neon Gradient -->
+    <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#10b981" />
-      <stop offset="50%" stop-color="#6366f1" />
-      <stop offset="100%" stop-color="#818cf8" />
-    </linearGradient>
-
-    <!-- Gavel Gold Gradient -->
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fbbf24" />
-      <stop offset="100%" stop-color="#d97706" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#6366f1" />
     </linearGradient>
 
     <!-- Glow Filter -->
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="12" result="blur" />
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Background Base -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
-  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="8" />
+  <!-- Background Canvas -->
+  <rect width="512" height="512" rx="120" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="116" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" />
 
-  <!-- Outer Glowing Buggy Busters Shield -->
-  <polygon points="256,64 432,380 80,380" fill="none" stroke="url(#triGrad)" stroke-width="24" stroke-linejoin="round" filter="url(#glow)" opacity="0.9" />
+  <!-- Radar Outer Rings -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#radarGrad)" stroke-width="12" filter="url(#glow)" opacity="0.9" />
+  <circle cx="256" cy="256" r="125" fill="none" stroke="url(#radarGrad)" stroke-width="6" opacity="0.6" stroke-dasharray="16 10" />
+  <circle cx="256" cy="256" r="70" fill="none" stroke="url(#radarGrad)" stroke-width="4" opacity="0.4" />
 
-  <!-- Inner Solid Buggy Busters Accent -->
-  <polygon points="256,110 400,360 112,360" fill="rgba(99, 102, 241, 0.15)" stroke="url(#triGrad)" stroke-width="8" stroke-linejoin="round" />
+  <!-- Crosshairs -->
+  <line x1="256" y1="56" x2="256" y2="456" stroke="url(#radarGrad)" stroke-width="4" opacity="0.3" />
+  <line x1="56" y1="256" x2="456" y2="256" stroke="url(#radarGrad)" stroke-width="4" opacity="0.3" />
 
-  <!-- Stylized Auction Gavel (Center Icon) -->
-  <g transform="translate(256, 260) rotate(-35) translate(-256, -260)" filter="url(#glow)">
-    <!-- Gavel Handle -->
-    <rect x="242" y="220" width="28" height="170" rx="14" fill="url(#goldGrad)" />
-    <rect x="247" y="360" width="18" height="24" rx="6" fill="#92400e" />
+  <!-- Radar Sweep Cone -->
+  <path d="M 256,256 L 380,132 A 180,180 0 0,0 256,76 Z" fill="url(#radarGrad)" opacity="0.35" filter="url(#glow)" />
 
-    <!-- Gavel Head -->
-    <rect x="156" y="170" width="200" height="70" rx="18" fill="url(#goldGrad)" />
-    <!-- Gavel Head Metal Rings -->
-    <rect x="180" y="170" width="14" height="70" fill="#fef08a" opacity="0.8" />
-    <rect x="318" y="170" width="14" height="70" fill="#fef08a" opacity="0.8" />
+  <!-- Radar Blips -->
+  <circle cx="340" cy="170" r="14" fill="#10b981" filter="url(#glow)" />
+  <circle cx="200" cy="320" r="10" fill="#38bdf8" filter="url(#glow)" />
+  <circle cx="310" cy="310" r="8" opacity="0.8" fill="#6366f1" filter="url(#glow)" />
 
-    <!-- Sound Block Base -->
-    <path d="M 140,390 L 372,390 L 390,414 L 122,414 Z" fill="url(#triGrad)" />
-  </g>
-
-  <!-- Sparkle Accent -->
-  <circle cx="390" cy="110" r="16" fill="#fbbf24" filter="url(#glow)" />
+  <!-- Center Radar Core -->
+  <circle cx="256" cy="256" r="24" fill="url(#radarGrad)" filter="url(#glow)" />
+  <circle cx="256" cy="256" r="10" fill="#ffffff" />
 </svg>
