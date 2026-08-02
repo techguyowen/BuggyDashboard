@@ -15,7 +15,7 @@ services:
       - HOST=0.0.0.0
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7422/api/progress"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:7422/api/progress"]
       interval: 30s
       timeout: 10s
       retries: 3

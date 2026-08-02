@@ -59,6 +59,11 @@ let scraperProgress = {
 function loadDiskCache() {
   try {
     if (fs.existsSync(CACHE_FILE_PATH)) {
+      const stat = fs.statSync(CACHE_FILE_PATH);
+      if (!stat.isFile()) {
+        console.warn(`[DISK CACHE] ${CACHE_FILE_PATH} is a directory. Skipping load.`);
+        return;
+      }
       const raw = fs.readFileSync(CACHE_FILE_PATH, 'utf8');
       const savedItems = JSON.parse(raw);
       if (Array.isArray(savedItems) && savedItems.length > 0) {
@@ -82,6 +87,10 @@ function loadDiskCache() {
 
 function saveDiskCache() {
   try {
+    if (fs.existsSync(CACHE_FILE_PATH) && !fs.statSync(CACHE_FILE_PATH).isFile()) {
+      console.warn(`[DISK CACHE] ${CACHE_FILE_PATH} is a directory. Skipping save.`);
+      return;
+    }
     pruneExpiredCatalogCache();
     const itemsArr = Array.from(masterCatalogMap.values());
     const tmpPath = `${CACHE_FILE_PATH}.tmp`;
@@ -603,19 +612,21 @@ function updateCrawlerSchedule(intervalSec) {
   return crawlerIntervalSec;
 }
 
-// Initial scheduler init (only crawl on boot if catalog cache is completely empty)
+// Initial scheduler init (only crawl on boot if server.js is run directly and catalog cache is empty)
 pruneExpiredCatalogCache();
-if (masterCatalogMap.size === 0) {
-  console.log('[DEEP CRAWLER] Empty catalog cache detected. Initializing first-run catalog crawl...');
-  crawlDeepAuctionPages(10, 60);
-} else {
-  console.log(`[DEEP CRAWLER] Master catalog ready with ${masterCatalogMap.size} cached items.`);
-}
-updateCrawlerSchedule(60);
+if (require.main === module) {
+  if (masterCatalogMap.size === 0) {
+    console.log('[DEEP CRAWLER] Empty catalog cache detected. Initializing first-run catalog crawl...');
+    crawlDeepAuctionPages(10, 60);
+  } else {
+    console.log(`[DEEP CRAWLER] Master catalog ready with ${masterCatalogMap.size} cached items.`);
+  }
+  updateCrawlerSchedule(60);
 
-// Run cache pruning every 30 minutes
-const pruneInterval = setInterval(pruneExpiredCatalogCache, 30 * 60 * 1000);
-pruneInterval.unref();
+  // Run cache pruning every 30 minutes
+  const pruneInterval = setInterval(pruneExpiredCatalogCache, 30 * 60 * 1000);
+  pruneInterval.unref();
+}
 
 // API Endpoint for Live Scraper Progress
 app.get('/api/progress', (req, res) => {
@@ -1242,10 +1253,10 @@ app.post('/api/watchlist/remote-watch', async (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, HOST, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
     console.log(`🚀 Buggy Busters Auction Tracker Running`);
-    console.log(`📍 URL: http://${HOST}:${PORT}`);
+    console.log(`📍 URL: http://0.0.0.0:${PORT}`);
     console.log(`====================================================`);
   });
 }
