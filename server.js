@@ -10,6 +10,15 @@ const HOST = process.env.HOST || '0.0.0.0';
 const CACHE_FILE_PATH = path.join(__dirname, 'catalog_cache.json');
 let lastCatalogUpdateTime = Date.now();
 
+/**
+ * Utility: Return current YYYY-MM-DD date in Eastern Time (America/New_York)
+ */
+function getEasternDateStr(d = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(d);
+}
+
+
 app.set('trust proxy', 1);
 app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -179,8 +188,8 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 10, maxPagesPerCatalog 
     await new Promise(r => setTimeout(r, 2500));
 
     // Discover live Morganton auction catalog galleries (/bidgallery/)
-    // Filter out closed/past auctions by checking the date in the URL slug
-    const todayStr = new Date().toISOString().split('T')[0]; // e.g. "2026-08-02"
+    // Filter out closed/past auctions by checking the date in the URL slug (in Eastern Time)
+    const todayStr = getEasternDateStr(); // e.g. "2026-08-02" in Eastern Time
     const allAuctions = await page.evaluate(() => {
       const anchors = Array.from(document.querySelectorAll('a[href*="/bidgallery/"]'));
       const found = [];
@@ -386,7 +395,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 10, maxPagesPerCatalog 
                 category = 'Pallets & Bulk Lots';
               }
 
-              let closingDate = new Date().toISOString().split('T')[0];
+              let closingDate = getEasternDateStr();
               let endsAtISO = null;
               let closingTimeStr = null;
 
@@ -548,21 +557,23 @@ function pruneExpiredCatalogCache() {
       continue;
     }
 
-    // 1. Immediately remove items from ended/closed auctions
+    // 1. Retention Buffer: Keep items in cache until 11:59:59 PM EDT on their closing date (or endsAt date)
+    let itemCutoffMs = NaN;
+    if (item.closingDate) {
+      itemCutoffMs = new Date(`${item.closingDate}T23:59:59-04:00`).getTime();
+    }
     const endsAtMs = item.endsAt ? new Date(item.endsAt).getTime() : NaN;
-    if (!isNaN(endsAtMs) && endsAtMs < nowMs) {
+    if (!isNaN(endsAtMs)) {
+      const endsAtDateStr = getEasternDateStr(new Date(endsAtMs));
+      const endsAtEODMs = new Date(`${endsAtDateStr}T23:59:59-04:00`).getTime();
+      const effectiveBufferEnd = Math.max(endsAtMs, endsAtEODMs);
+      itemCutoffMs = !isNaN(itemCutoffMs) ? Math.max(itemCutoffMs, effectiveBufferEnd) : effectiveBufferEnd;
+    }
+
+    if (!isNaN(itemCutoffMs) && nowMs > itemCutoffMs) {
       masterCatalogMap.delete(id);
       prunedCount++;
       continue;
-    }
-
-    // 2. Fallback: closingDate is in the past
-    if (item.closingDate) {
-      const closingMs = new Date(`${item.closingDate}T23:59:59-04:00`).getTime();
-      if (!isNaN(closingMs) && closingMs < nowMs) {
-        masterCatalogMap.delete(id);
-        prunedCount++;
-      }
     }
   }
 
@@ -1103,7 +1114,7 @@ app.post('/api/watchlist/sync', async (req, res) => {
               address: realAddress,
               category: realCategory,
               auctionName: realAuctionName,
-              closingDate: now.toISOString().split('T')[0],
+              closingDate: getEasternDateStr(now),
               endsAt: new Date(now.getTime() + 12 * 3600 * 1000).toISOString(),
               financials: calculateFinancials(remote.currentBid || 0, remote.retailPrice)
             };
