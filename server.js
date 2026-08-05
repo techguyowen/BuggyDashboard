@@ -290,7 +290,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 10, maxPagesPerCatalog 
             await new Promise(r => setTimeout(r, 1500));
           }
 
-          const pageItems = await page.evaluate((loc, aucName, pNum) => {
+          const pageItems = await page.evaluate((loc, aucName, pNum, serverTodayStr) => {
             const cards = Array.from(document.querySelectorAll('div.aucbox'));
             const items = [];
             const seen = new Set();
@@ -395,7 +395,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 10, maxPagesPerCatalog 
                 category = 'Pallets & Bulk Lots';
               }
 
-              let closingDate = getEasternDateStr();
+              let closingDate = serverTodayStr;
               let endsAtISO = null;
               let closingTimeStr = null;
 
@@ -482,7 +482,7 @@ async function crawlDeepAuctionPages(maxCatalogsToScan = 10, maxPagesPerCatalog 
             }
 
             return items;
-          }, auc.location, auc.name, pageNum);
+          }, auc.location, auc.name, pageNum, todayStr);
 
           if (pageItems.length === 0 && pageNum > 2) {
             break;
