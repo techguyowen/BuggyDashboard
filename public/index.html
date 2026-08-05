@@ -3172,7 +3172,7 @@
       if (isInitialRender || !grid || grid.children.length === 0 || grid.querySelector('.empty-state')) {
         applyFilters();
       } else {
-        updateStats(currentFilteredItems.length > 0 ? currentFilteredItems : allItems);
+        applyFilters(true);
       }
     }
 
