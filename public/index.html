@@ -3172,7 +3172,7 @@
       if (isInitialRender || !grid || grid.children.length === 0 || grid.querySelector('.empty-state')) {
         applyFilters();
       } else {
-        applyFilters(true);
+        applyFilters(true, true);
       }
     }
 
@@ -3263,7 +3263,7 @@
       progressPollTimer = setInterval(pollProgress, 1500);
     }
 
-    function applyFilters(isBackgroundUpdate = false) {
+    function applyFilters(isBackgroundUpdate = false, skipRender = false) {
       const rawQuery = document.getElementById('searchInput').value.trim();
       const rawExclude = document.getElementById('excludeInput') ? document.getElementById('excludeInput').value.trim().toLowerCase() : '';
       const selectedCatalog = document.getElementById('auctionCatalogSelect') ? document.getElementById('auctionCatalogSelect').value : 'All';
@@ -3394,7 +3394,14 @@
       } else {
         currentRenderCount = PAGE_CHUNK_SIZE;
       }
-      renderCardsChunk();
+      if (skipRender) {
+        const visibleEl = document.getElementById('visibleCount');
+        if (visibleEl) {
+          visibleEl.innerText = `${Math.min(currentRenderCount, filtered.length)}`;
+        }
+      } else {
+        renderCardsChunk();
+      }
       updateStats(filtered);
     }
 
